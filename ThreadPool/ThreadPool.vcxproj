@@ -146,6 +146,9 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="ThreadPool.hpp" />
+    <ClInclude Include="ThreadPoolCPP.hpp" />
+    <ClInclude Include="ThreadPoolWin.h" />
+    <ClInclude Include="ThreadPoolWinVista.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source.cpp" />
