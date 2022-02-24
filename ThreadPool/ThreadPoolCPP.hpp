@@ -9,11 +9,11 @@
 #include <functional>
 
 namespace Threading {
-	template <class _FuncTy, class ..._Args>
+	template <class ..._Args>
 	class ThreadPoolCPP : public ThreadPool {
 	public:
 		using thread_container = std::vector<std::thread>;
-		using function_type = _FuncTy;
+		using function_type = void(*)(_Args..);
 		using work_type = std::tuple<_Args...>;
 	protected:
 		const Config _config;
@@ -24,14 +24,14 @@ namespace Threading {
 		thread_container _threads;
 		std::atomic_uint64_t _waitingThreads;
 	public:
-		ThreadPoolCPP(function_type functor, _Args...args) : _config(config), _functor(functor), _waitingThreads(0), ThreadPool() {
+		ThreadPoolCPP(function_type functor) : _config(config), _functor(functor), _waitingThreads(0), ThreadPool() {
 			// std::thread cannot be copied, only moved
 			for (std::size_t i = 0; i < config.startingThreads; ++i) {
 				_threads.push_back(std::thread(&ThreadPoolCPP::FunctionWrapper, *this));
 			}
 		}
 
-		ThreadPoolCPP(Config config, function_type functor, _Args...args) : _config(config), _functor(functor), _waitingThreads(0), ThreadPool(config) {
+		ThreadPoolCPP(Config config, function_type functor) : _config(config), _functor(functor), _waitingThreads(0), ThreadPool(config) {
 			// std::thread cannot be copied, only moved
 			for (std::size_t i = 0; i < config.startingThreads; ++i) {
 				_threads.push_back(std::thread(&ThreadPoolCPP::FunctionWrapper, *this));
