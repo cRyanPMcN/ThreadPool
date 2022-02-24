@@ -3,11 +3,20 @@
 namespace Threading {
 	class ThreadPool {
 	public:
+		struct Config {
+			std::size_t minimumThreads;
+			std::size_t maximumThreads;
+			std::size_t startingThreads;
 
+			Config() : minimumThreads(1), maximumThreads(16), startingThreads(1) {
+
+			}
+		};
 	protected:
+		const Config _config;
 		bool _run;
 	public:
-		ThreadPool() : _run(true) {
+		ThreadPool(Config config = Config()) : _run(true), _config(config) {
 
 		}
 
