@@ -22,10 +22,10 @@ namespace Threading {
 		}
 
 		~ThreadPool() {
-			_run = false;
+			Stop();
 		}
 
-		void Stop() {
+		virtual void Stop() {
 			_run = false;
 		}
 
