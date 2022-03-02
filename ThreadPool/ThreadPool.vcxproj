@@ -147,13 +147,13 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="ThreadPool.hpp" />
-    <ClInclude Include="ThreadPoolCPP.hpp" />
-    <ClInclude Include="ThreadPoolWin.h" />
-    <ClInclude Include="ThreadPoolWinVista.hpp" />
+    <ClCompile Include="Source.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Source.cpp" />
+    <ClInclude Include="..\Include\ThreadPool.hpp" />
+    <ClInclude Include="..\Include\ThreadPoolCPP.hpp" />
+    <ClInclude Include="..\Include\ThreadPoolWin.h" />
+    <ClInclude Include="..\Include\ThreadPoolWinVista.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
