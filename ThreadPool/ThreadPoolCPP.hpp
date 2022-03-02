@@ -9,33 +9,72 @@
 #include <functional>
 
 namespace Threading {
-	template <class ..._Args>
+
+	template <class _Ty>
+	struct FunctionTraits;
+
+	template <class _RetTy, typename..._ArgsTy>
+	struct FunctionTraits<std::function<_RetTy(_ArgsTy...)>> {
+		static const size_t nargs = sizeof...(_ArgsTy);
+
+		using arg_types = _ArgsTy...;
+		using result_type = _RetTy;
+
+		template <size_t i>
+		struct arg {
+			using type = typename std::tuple_element<i, std::tuple<_ArgsTy...>>::type;
+		};
+	};
+
+	template <class _RetTy, typename..._ArgsTy>
+	struct FunctionTraits<_RetTy(*)(_ArgsTy...)> {
+		static const size_t nargs = sizeof...(_ArgsTy);
+
+		using arg_types = _ArgsTy...;
+		using result_type = _RetTy;
+
+		template <size_t i>
+		struct arg {
+			using type = typename std::tuple_element<i, std::tuple<_ArgsTy...>>::type;
+		};
+	};
+
+	template<typename T>
+	struct function_traits;
+
+	template<typename _RetTy, typename ..._ArgsTy>
+	struct function_traits<std::function<_RetTy(_ArgsTy...)>> {
+		static const size_t nargs = sizeof...(_ArgsTy);
+
+		using arg_types = _ArgsTy...;
+		using result_type = _RetTy;
+
+		template <size_t i>
+		struct arg {
+			using type = typename std::tuple_element<i, std::tuple<_ArgsTy...>>::type;
+		};
+	};
+
+	template <class _FuncTy, class... _ArgsTy>
 	class ThreadPoolCPP : public ThreadPool {
 	public:
 		using thread_container = std::vector<std::thread>;
-		using function_type = void(*)(_Args..);
-		using work_type = std::tuple<_Args...>;
+		using function_type = _FuncTy;
+		using work_type = std::tuple<_ArgsTy...>;
 	protected:
-		const Config _config;
 		function_type _functor;
 		std::queue<work_type> _works;
 		std::mutex _workMutex;
 		std::condition_variable _conditionVariable;
 		thread_container _threads;
+		std::thread _watcherThread;
 		std::atomic_uint64_t _waitingThreads;
 	public:
-		ThreadPoolCPP(function_type functor) : _config(config), _functor(functor), _waitingThreads(0), ThreadPool() {
-			// std::thread cannot be copied, only moved
-			for (std::size_t i = 0; i < config.startingThreads; ++i) {
-				_threads.push_back(std::thread(&ThreadPoolCPP::FunctionWrapper, *this));
-			}
+		ThreadPoolCPP(function_type functor) : ThreadPoolCPP(Config(), functor) {
 		}
+		
+		ThreadPoolCPP(Config config, function_type functor) : _functor(functor), _waitingThreads(0), _watcherThread(&ThreadPoolCPP::ThreadWrapper, this), ThreadPool(config) {
 
-		ThreadPoolCPP(Config config, function_type functor) : _config(config), _functor(functor), _waitingThreads(0), ThreadPool(config) {
-			// std::thread cannot be copied, only moved
-			for (std::size_t i = 0; i < config.startingThreads; ++i) {
-				_threads.push_back(std::thread(&ThreadPoolCPP::FunctionWrapper, *this));
-			}
 		}
 
 		~ThreadPoolCPP() {
@@ -43,80 +82,88 @@ namespace Threading {
 			Wait();
 		}
 
-		virtual void Push(work_type const& work) {
-			std::unique_lock<std::mutex> lock(_workMutex);
-			_works.push(work);
-			_conditionVariable.notify_one();
-		}
+		//virtual void Push(work_type const& work) {
+		//	std::unique_lock<std::mutex> lock(_workMutex);
+		//	_works.push(work);
+		//	_conditionVariable.notify_one();
+		//}
 
-		virtual void Push(work_type const&& work) {
-			std::unique_lock<std::mutex> lock(_workMutex);
-			_works.push(work);
-			_conditionVariable.notify_one();
-			if (_waitingThreads == 0 && _threads.size() < _config.maximumThreads) {
-				_threads.push_back(std::thread(&ThreadPoolCPP::FunctionWrapper, *this));
-			}
-		}
+		//virtual void Push(work_type const&& work) {
+		//	std::unique_lock<std::mutex> lock(_workMutex);
+		//	_works.push(work);
+		//	_conditionVariable.notify_one();
+		//	if (_waitingThreads == 0 && _threads.size() < _config.maximumThreads) {
+		//		_threads.push_back(std::thread(&ThreadPoolCPP::FunctionWrapper, this));
+		//	}
+		//}
 
-		virtual void Push(_Args...args) {
-			Push(std::forward_as_tuple(args...));
-		}
+		//virtual void Push(_Args...args) {
+		//	Push(std::forward_as_tuple(args...));
+		//}
 
-		virtual void Push(_Args const&&... args) {
-			Push(std::forward_as_tuple(args...));
-		}
+		//template <class _Iter>
+		//void Push(_Iter begin, _Iter end) {
+		//	std::size_t count = 0;
+		//	while (begin != end) {
+		//		_works.push(*begin);
+		//		++begin;
+		//		++count;
+		//	}
 
-		template <class _Iter, std::enable_if_t<std::is_same_v<std::iterator_traits<_Iter>::value_type>, work_type>>
-		virtual void Push(_Iter begin, _Iter end) {
-			std::size_t count = 0;
-			while (begin != end) {
-				_works.push(*begin);
-				++begin;
-				++count;
-			}
-
-			if (count > _waitingThreads) {
-				_conditionVariable.notify_all();
-			}
-			else {
-				while (count != 0) {
-					_conditionVariable.notify_one();
-				}
-			}
-		}
+		//	if (count > _waitingThreads) {
+		//		_conditionVariable.notify_all();
+		//	}
+		//	else {
+		//		while (count != 0) {
+		//			_conditionVariable.notify_one();
+		//		}
+		//	}
+		//}
 
 		virtual void Wait() override {
-			while (_waitingThreads < _threads.size()) {
-				std::this_thread::yield();
-			}
+			//while (_waitingThreads < _threads.size()) {
+			//	std::this_thread::yield();
+			//}
 		}
 
 		virtual void FunctionWrapper() {
-			while (_run) {
-				{
-					std::unique_lock<std::mutex> lock(_workMutex);
-					++_waitingThreads;
-					_conditionVariable.wait(lock);
-					--_waitingThreads;
-				}
+			//while (_run) {
+			//	{
+			//		std::unique_lock<std::mutex> lock(_workMutex);
+			//		++_waitingThreads;
+			//		_conditionVariable.wait(lock);
+			//		--_waitingThreads;
+			//	}
 
-				while (!_works.empty()) {
-					work_type work;
-					{
-						std::unique_lock<std::mutex> lock(_workMutex);
-						work = _works.front();
-						_works.pop();
-					}
+			//	while (!_works.empty()) {
+			//		std::unique_lock<std::mutex> lock(_workMutex);
+			//		if (_works.empty()) {
+			//			break;
+			//		}
+			//		work_type work = _works.front();
+			//		_works.pop();
+			//		lock.unlock();
 
-					_Execute(work, std::make_index_sequence<std::tuple_size_v<work_type>>());
-				}
-			}
+			//		_Execute(work, std::make_index_sequence<sizeof...(_Args)>());
+			//	}
+			//}
+		}
+
+		void ThreadWrapper() {
+			// TODO: Write code for a main thread that manages creating and destroying threads
+			// while _run == true
+			//		check number of waiting threads
+			//			waiting threads too low
+			//				create new thread
+			//			waiting threads too high
+			//				destroy threads
+			// end loop
 		}
 
 	protected:
 		template <size_t..._indexes>
 		inline void _Execute(work_type& work, std::index_sequence<_indexes...> indexSequence) {
-			std::invoke(_functor, std::move(std::get<_indexes>(work)));
+			std::invoke(std::move(_functor), std::get<_indexes>(work)...);
 		}
 	};
 }
