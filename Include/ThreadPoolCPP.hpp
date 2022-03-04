@@ -10,51 +10,6 @@
 
 namespace Threading {
 
-	template <class _Ty>
-	struct FunctionTraits;
-
-	template <class _RetTy, typename..._ArgsTy>
-	struct FunctionTraits<std::function<_RetTy(_ArgsTy...)>> {
-		static const size_t nargs = sizeof...(_ArgsTy);
-
-		using arg_types = _ArgsTy...;
-		using result_type = _RetTy;
-
-		template <size_t i>
-		struct arg {
-			using type = typename std::tuple_element<i, std::tuple<_ArgsTy...>>::type;
-		};
-	};
-
-	template <class _RetTy, typename..._ArgsTy>
-	struct FunctionTraits<_RetTy(*)(_ArgsTy...)> {
-		static const size_t nargs = sizeof...(_ArgsTy);
-
-		using arg_types = _ArgsTy...;
-		using result_type = _RetTy;
-
-		template <size_t i>
-		struct arg {
-			using type = typename std::tuple_element<i, std::tuple<_ArgsTy...>>::type;
-		};
-	};
-
-	template<typename T>
-	struct function_traits;
-
-	template<typename _RetTy, typename ..._ArgsTy>
-	struct function_traits<std::function<_RetTy(_ArgsTy...)>> {
-		static const size_t nargs = sizeof...(_ArgsTy);
-
-		using arg_types = _ArgsTy...;
-		using result_type = _RetTy;
-
-		template <size_t i>
-		struct arg {
-			using type = typename std::tuple_element<i, std::tuple<_ArgsTy...>>::type;
-		};
-	};
-
 	template <class _FuncTy, class... _ArgsTy>
 	class ThreadPoolCPP : public ThreadPool {
 	public:
@@ -71,6 +26,7 @@ namespace Threading {
 		std::atomic_uint64_t _waitingThreads;
 	public:
 		ThreadPoolCPP(function_type functor) : ThreadPoolCPP(Config(), functor) {
+
 		}
 		
 		ThreadPoolCPP(Config config, function_type functor) : _functor(functor), _waitingThreads(0), _watcherThread(&ThreadPoolCPP::ThreadWrapper, this), ThreadPool(config) {
