@@ -5,12 +5,12 @@
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 
 namespace ThreadPoolUnitTests {
-	template <class _FuncTy, class... _Args>
-	using ThreadPool = Threading::ThreadPoolCPP<_FuncTy, _Args...>;
+	template <class... _Args>
+	using ThreadPool = Threading::ThreadPoolCPP<_Args...>;
 
 	// ConstructorTest functions have no body
 	namespace ConstructorTest {
-		void Function() {
+		void Function(int x) {
 
 		}
 		struct Object {
@@ -22,11 +22,15 @@ namespace ThreadPoolUnitTests {
 
 			}
 
-			void Overload() {
+			void ConstMember() const {
 
 			}
 
-			void Overload(int i) {
+			static void Overload() {
+
+			}
+
+			static void Overload(int i) {
 
 			}
 		};
@@ -37,65 +41,29 @@ namespace ThreadPoolUnitTests {
 		};
 	}
 
-	namespace SingleExecutionTest {
-		void Function(int& value) {
-			++value;
-		}
-		struct Object {
-			int store;
-			
-			static void Static(int& value) {
-				++value;
-			}
-
-			void Member(int& value) {
-				++value;
-			}
-
-			void Member(int set) {
-				store = set;
-				++set;
-			}
-		};
-		struct Callable {
-			int store;
-
-			void operator()(int& value) {
-				++value;
-			}
-			
-			void operator()(int set) {
-				store = set;
-				++set;
-			}
-		};
-	}
-
-	template <class _FnTy, class..._ArgTy>
-	static void FunctionTest(void(_FnTy::*)(_ArgTy...)) {
-
-	}
-
 	TEST_CLASS(ThreadPoolCPPUnitTests) {
 	public:
 		// This is a functional test, if it compiles and completes without error then the test succeeds
 		TEST_METHOD(ThreadPoolCPP_Constructor_Test) {
-			ThreadPool<void(*)()> nonMemberStaticThreadPool(ConstructorTest::Function);
+			std::pair x(int(1), int(2));
+			Threading::ThreadPoolCPP nonMemberStaticThreadPool(ConstructorTest::Function);
 
-			ThreadPool<void(*)()> memberStaticThreadPool(ConstructorTest::Object::Static);
-
-			ThreadPool<void(ConstructorTest::Object::*)(), ConstructorTest::Object*> memberThreadPool(&ConstructorTest::Object::Member);
-
-			ThreadPool<void(ConstructorTest::Object::*)()> overloadVoidThreadPool(&ConstructorTest::Object::Overload);
-
-			ThreadPool<void(ConstructorTest::Object::*)(int), int> overloadIntThreadPool(&ConstructorTest::Object::Overload);
+			Threading::ThreadPoolCPP memberStaticThreadPool(ConstructorTest::Object::Static);
 
 			ConstructorTest::Object object;
+			Threading::ThreadPoolCPP memberThreadPool(&ConstructorTest::Object::Member, &object);
+
+			Threading::ThreadPoolCPP constMemberThreaDPool(&ConstructorTest::Object::ConstMember, &object);
+
+			Threading::ThreadPoolCPP overloadVoidThreadPool((void(*)())(&ConstructorTest::Object::Overload));
+
+			Threading::ThreadPoolCPP overloadIntThreadPool((void(*)(int))(&ConstructorTest::Object::Overload));
+
 			auto func = std::bind(&ConstructorTest::Object::Member, &object);
-			ThreadPool<decltype(func)> bindThreadPool(func);
+			Threading::ThreadPoolCPP bindThreadPool(func);
 
 			ConstructorTest::Callable callable;
-			ThreadPool<ConstructorTest::Callable> callableThreadPool(callable);
+			Threading::ThreadPoolCPP callableThreadPool(&ConstructorTest::Callable::operator(), &callable);
 		}
 	};
 }
