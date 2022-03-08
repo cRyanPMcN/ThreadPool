@@ -5,14 +5,20 @@
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 
 namespace ThreadPoolUnitTests {
-	template <class... _Args>
-	using ThreadPool = Threading::ThreadPoolCPP<_Args...>;
-
 	// ConstructorTest functions have no body
 	namespace ConstructorTest {
-		void Function(int x) {
+		void Function() {
 
 		}
+
+		void OverloadFunction() {
+
+		}
+
+		void OverloadFunction(int x) {
+
+		}
+
 		struct Object {
 			static void Static() {
 
@@ -26,11 +32,19 @@ namespace ThreadPoolUnitTests {
 
 			}
 
-			static void Overload() {
+			static void OverLoadStatic() {
 
 			}
 
-			static void Overload(int i) {
+			static void OverLoadStatic(int i) {
+
+			}
+
+			void OverLoadMember() {
+
+			}
+
+			void OverLoadMember(int x) {
 
 			}
 		};
@@ -45,25 +59,74 @@ namespace ThreadPoolUnitTests {
 	public:
 		// This is a functional test, if it compiles and completes without error then the test succeeds
 		TEST_METHOD(ThreadPoolCPP_Constructor_Test) {
-			std::pair x(int(1), int(2));
-			Threading::ThreadPoolCPP nonMemberStaticThreadPool(ConstructorTest::Function);
+			{
+				Threading::ThreadPoolCPP nonMemberStaticThreadPool(ConstructorTest::Function);
+				Logger::WriteMessage("ThreadPoolCPP->Constructor: Non-member static function threadpool construction completed.\n");
+			}
 
-			Threading::ThreadPoolCPP memberStaticThreadPool(ConstructorTest::Object::Static);
+			{
+				Threading::ThreadPoolCPP memberStaticThreadPool(&ConstructorTest::Object::Static);
+				Logger::WriteMessage("ThreadPoolCPP->Constructor: Member static function threadpool construction completed.\n");
+			}
 
-			ConstructorTest::Object object;
-			Threading::ThreadPoolCPP memberThreadPool(&ConstructorTest::Object::Member, &object);
+			{
+				ConstructorTest::Object object;
+				Threading::ThreadPoolCPP memberThreadPool(&ConstructorTest::Object::Member, &object);
+				Logger::WriteMessage("ThreadPoolCPP->Constructor: Member function threadpool construction completed.\n");
+			}
 
-			Threading::ThreadPoolCPP constMemberThreaDPool(&ConstructorTest::Object::ConstMember, &object);
+			{
+				ConstructorTest::Object object;
+				Threading::ThreadPoolCPP constMemberThreadPool(&ConstructorTest::Object::ConstMember, &object);
+				Logger::WriteMessage("ThreadPoolCPP->Constructor: Const member function threadpool construction completed.\n");
+			}
 
-			Threading::ThreadPoolCPP overloadVoidThreadPool((void(*)())(&ConstructorTest::Object::Overload));
+			{
+				Threading::ThreadPoolCPP overloadVoidThreadPool((void(*)())(ConstructorTest::OverloadFunction));
+				Logger::WriteMessage("ThreadPoolCPP->Constructor: Overloaded static function threadpool construction completed.\n");
+			}
 
-			Threading::ThreadPoolCPP overloadIntThreadPool((void(*)(int))(&ConstructorTest::Object::Overload));
+			{
+				Threading::ThreadPoolCPP overloadIntThreadPool((void(*)(int))(ConstructorTest::OverloadFunction));
+				Logger::WriteMessage("ThreadPoolCPP->Constructor: Overloaded static function threadpool construction completed.\n");
+			}
 
-			auto func = std::bind(&ConstructorTest::Object::Member, &object);
-			Threading::ThreadPoolCPP bindThreadPool(func);
+			{
+				Threading::ThreadPoolCPP overloadVoidThreadPool((void(*)())(ConstructorTest::Object::OverLoadStatic));
+				Logger::WriteMessage("ThreadPoolCPP->Constructor: Overloaded member static function threadpool construction completed.\n");
+			}
 
-			ConstructorTest::Callable callable;
-			Threading::ThreadPoolCPP callableThreadPool(&ConstructorTest::Callable::operator(), &callable);
+			{
+				Threading::ThreadPoolCPP overloadIntThreadPool((void(*)(int))(ConstructorTest::Object::OverLoadStatic));
+				Logger::WriteMessage("ThreadPoolCPP->Constructor: Overloaded member static function threadpool construction completed.\n");
+			}
+
+			{
+				ConstructorTest::Object object;
+				Threading::ThreadPoolCPP overloadVoidThreadPool((void(ConstructorTest::Object::*)())(&ConstructorTest::Object::OverLoadMember), &object);
+				Logger::WriteMessage("ThreadPoolCPP->Constructor: Overloaded member static function threadpool construction completed.\n");
+			}
+
+			{
+				ConstructorTest::Object object;
+				Threading::ThreadPoolCPP overloadIntThreadPool((void(ConstructorTest::Object::*)(int))(&ConstructorTest::Object::OverLoadMember), &object);
+				Logger::WriteMessage("ThreadPoolCPP->Constructor: Overloaded member static function threadpool construction completed.\n");
+			}
+
+			{
+				ConstructorTest::Object object;
+				auto func = std::bind(&ConstructorTest::Object::Member, &object);
+				Threading::ThreadPoolCPP bindThreadPool(func);
+				Logger::WriteMessage("ThreadPoolCPP->Constructor: std::bind function object threadpool construction completed.\n");
+			}
+
+			{
+				ConstructorTest::Callable callable;
+				Threading::ThreadPoolCPP callableThreadPool(callable);
+				Logger::WriteMessage("ThreadPoolCPP->Constructor: Callable object threadpool construction completed.\n");
+			}
+
+			Assert::AreEqual(0, 0);
 		}
 	};
 }
