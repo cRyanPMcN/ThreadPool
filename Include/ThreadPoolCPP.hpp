@@ -88,6 +88,7 @@ namespace Threading {
 		void Push(_Iter begin, _Iter end) {
 			std::size_t count = 0;
 			while (begin != end) {
+				std::unique_lock<std::mutex> lock(_workMutex);
 				_works.push(*begin);
 				++begin;
 				++count;
