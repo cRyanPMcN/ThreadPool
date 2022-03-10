@@ -29,6 +29,7 @@ namespace Threading {
 			for (decltype(_config.startingThreads) i = 0; i < _config.startingThreads; ++i) {
 				_threads.push_back(std::thread(&ThreadPoolCPP::FunctionWrapper<_FuncTy>, this, functor));
 			}
+			Wait();
 		}
 
 		template <typename _RetTy>
@@ -37,6 +38,7 @@ namespace Threading {
 			for (decltype(_config.startingThreads) i = 0; i < _config.startingThreads; ++i) {
 				_threads.push_back(std::thread(&ThreadPoolCPP::FunctionWrapper<decltype(functor)>, this, functor));
 			}
+			Wait();
 		}
 
 		template <typename _RetTy, class _ObjTy>
@@ -45,6 +47,7 @@ namespace Threading {
 			for (decltype(_config.startingThreads) i = 0; i < _config.startingThreads; ++i) {
 				_threads.push_back(std::thread(&ThreadPoolCPP::FunctionWrapper<decltype(functor), _ObjTy>, this, functor, obj));
 			}
+			Wait();
 		}
 
 		template <typename _RetTy, class _ObjTy>
@@ -53,6 +56,7 @@ namespace Threading {
 			for (decltype(_config.startingThreads) i = 0; i < _config.startingThreads; ++i) {
 				_threads.push_back(std::thread(&ThreadPoolCPP::FunctionWrapper<decltype(functor), _ObjTy const>, this, functor, obj));
 			}
+			Wait();
 		}
 
 		~ThreadPoolCPP() {
@@ -190,12 +194,12 @@ namespace Threading {
 	protected:
 		template <class _FuncTy, size_t..._indexes>
 		inline void _Execute(_FuncTy functor, work_type& work, std::index_sequence<_indexes...> indexSequence) {
-			std::invoke(functor, std::move(std::get<_indexes>(work))...);
+			std::invoke(functor, std::get<_indexes>(work)...);
 		}
 
 		template <typename _FuncTy, class _ObjTy, size_t..._indexes>
 		inline void _Execute(_FuncTy functor, _ObjTy* obj, work_type& work, std::index_sequence<_indexes...> indexSequence) {
-			std::invoke(functor, obj, std::move(std::get<_indexes>(work))...);
+			std::invoke(functor, obj, std::get<_indexes>(work)...);
 		}
 	};
 }
