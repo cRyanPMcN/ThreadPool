@@ -69,7 +69,7 @@ namespace ThreadPoolUnitTests {
 		}
 
 		struct Object {
-			int store;
+			int store = 0;
 
 			static void Static(int& x) {
 				++x;
@@ -230,13 +230,16 @@ namespace ThreadPoolUnitTests {
 
 			Assert::AreEqual(0, 0);
 		}
+
 #define ASSERT_EXPECTED_VALUE Assert::AreEqual(expectedValue, testValue)
+#define ASSERT_EXPECTED_STORE(expected, test) Assert::AreEqual(expected.store, test.store)
+
+
 		TEST_METHOD(ThreadPoolCPP_Execution_Single) {
 			int expectedValue = 0;
 			int testValue = 0;
 			int incrementValue = 5;
 			// Sanity check
-			//Assert::AreEqual(expectedValue, testValue);
 			ASSERT_EXPECTED_VALUE;
 
 			{
@@ -270,12 +273,14 @@ namespace ThreadPoolUnitTests {
 			{
 				ExecutionTest::Object testObject;
 				ExecutionTest::Object expectedObject;
+				ASSERT_EXPECTED_STORE(expectedObject, testObject);
+
 				{
 					Threading::ThreadPoolCPP<int> threadpool(&ExecutionTest::Object::Member, &testObject);
 					threadpool.Push(testValue);
 					expectedObject.Member(expectedValue);
 					threadpool.Wait();
-					Assert::AreEqual(expectedObject.store, testObject.store);
+					ASSERT_EXPECTED_STORE(expectedObject, testObject);
 				}
 
 				{
@@ -283,17 +288,56 @@ namespace ThreadPoolUnitTests {
 					threadpool.Push();
 					expectedObject.Member();
 					threadpool.Wait();
-					Assert::AreEqual(expectedObject.store, testObject.store);
+					ASSERT_EXPECTED_STORE(expectedObject, testObject);
 				}
 
 				{
 					Threading::ThreadPoolCPP<ExecutionTest::Object&, int&> threadpool(&ExecutionTest::Object::ConstMember);
 					threadpool.Push(std::ref(testObject), std::ref(testValue));
 					expectedObject.ConstMember(expectedValue);
+					threadpool.Wait();
+					ASSERT_EXPECTED_STORE(expectedObject, testObject);
 					ASSERT_EXPECTED_VALUE;
 				}
 			}
+
+			{
+				Threading::ThreadPoolCPP<int&> threadpool(&ExecutionTest::Object::OverLoadStatic);
+				threadpool.Push(testValue);
+				ExecutionTest::Object::OverLoadStatic(expectedValue);
+				threadpool.Wait();
+				ASSERT_EXPECTED_VALUE;
+			}
+
+			{
+				Threading::ThreadPoolCPP<int&, int> threadpool(&ExecutionTest::Object::OverLoadStatic);
+				threadpool.Push(testValue, incrementValue);
+				ExecutionTest::Object::OverLoadStatic(expectedValue, incrementValue);
+				threadpool.Wait();
+				ASSERT_EXPECTED_VALUE;
+			}
+
+			{
+				ExecutionTest::Callable testCallable;
+				ExecutionTest::Callable expectedCallable;
+				Threading::ThreadPoolCPP<int> setter(std::ref(testCallable));
+				Threading::ThreadPoolCPP<> increment(std::ref(testCallable));
+				Threading::ThreadPoolCPP<int&> getter(std::ref(testCallable));
+				setter.Push(testValue);
+				setter.Wait();
+				ASSERT_EXPECTED_STORE(expectedCallable, testCallable);
+				ASSERT_EXPECTED_VALUE;
+				increment.Push();
+				increment.Wait();
+				ASSERT_EXPECTED_STORE(expectedCallable, testCallable);
+				ASSERT_EXPECTED_VALUE;
+				getter.Push(std::ref(testValue));
+				getter.Wait();
+				ASSERT_EXPECTED_STORE(expectedCallable, testCallable);
+				ASSERT_EXPECTED_VALUE;
+			}
 		}
-#undef ASSERTVALUE
+#undef ASSERT_EXPECTED_VALUE
+#undef ASSERT_EXPECTED_STORE
 	};
 }
