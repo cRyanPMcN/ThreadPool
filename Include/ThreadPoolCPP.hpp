@@ -92,8 +92,7 @@ namespace Threading {
 		void Push(_Iter begin, _Iter end) {
 			std::size_t count = 0;
 			while (begin != end) {
-				std::unique_lock<std::mutex> lock(_workMutex);
-				_works.push(*begin);
+				Push(*begin);
 				++begin;
 				++count;
 			}
@@ -109,6 +108,7 @@ namespace Threading {
 		}
 
 		virtual void Wait() override {
+			// Wait until all threads are waiting
 			while (_waitingThreads < _threads.size()) {
 				std::this_thread::yield();
 			}
@@ -117,6 +117,7 @@ namespace Threading {
 		template <typename _FuncTy>
 		void FunctionWrapper(_FuncTy functor) {
 			while (_run) {
+				// Sleep thread
 				{
 					std::unique_lock<std::mutex> lock(_workMutex);
 					++_waitingThreads;
@@ -124,7 +125,9 @@ namespace Threading {
 					--_waitingThreads;
 				}
 
+				// Loop work execution
 				while (!_works.empty()) {
+					// Acquire lock and ensure there is work to be done
 					std::unique_lock<std::mutex> lock(_workMutex);
 					if (_works.empty()) {
 						break;
@@ -141,6 +144,7 @@ namespace Threading {
 		template <typename _FuncTy, class _ObjTy>
 		void FunctionWrapper(_FuncTy functor, _ObjTy* obj) {
 			while (_run) {
+				// Sleep thread
 				{
 					std::unique_lock<std::mutex> lock(_workMutex);
 					++_waitingThreads;
@@ -148,7 +152,9 @@ namespace Threading {
 					--_waitingThreads;
 				}
 
+				// Loop work execution
 				while (!_works.empty()) {
+					// Acquire lock and ensure there is work to be done
 					std::unique_lock<std::mutex> lock(_workMutex);
 					if (_works.empty()) {
 						break;
@@ -194,7 +200,7 @@ namespace Threading {
 	protected:
 		template <class _FuncTy, size_t..._indexes>
 		inline void _Execute(_FuncTy functor, work_type& work, std::index_sequence<_indexes...> indexSequence) {
-			std::invoke(functor, std::get<_indexes>(work)...);
+			std::invoke<_FuncTy, _ArgsTy...>(std::move(functor), static_cast<_ArgsTy&&...>(std::get<_indexes>(work))...);
 		}
 
 		template <typename _FuncTy, class _ObjTy, size_t..._indexes>
