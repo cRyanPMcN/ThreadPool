@@ -96,20 +96,20 @@ namespace ThreadPoolUnitTests {
 			}
 		};
 		struct Callable {
+			using void_t = void*;
 			int store = 0;
 			
 			void operator()() {
 				++store;
 			}
-
+			
 			void operator()(int x) {
 				store = x;
 			}
 
-			void operator()(int& x) {
-				x = store;
+			void operator()(int* x) {
+				*x = store;
 			}
-
 		};
 	}
 
@@ -233,8 +233,7 @@ namespace ThreadPoolUnitTests {
 
 #define ASSERT_EXPECTED_VALUE Assert::AreEqual(expectedValue, testValue)
 #define ASSERT_EXPECTED_STORE(expected, test) Assert::AreEqual(expected.store, test.store)
-
-
+		 
 		TEST_METHOD(ThreadPoolCPP_Execution_Single) {
 			int expectedValue = 0;
 			int testValue = 0;
@@ -274,6 +273,7 @@ namespace ThreadPoolUnitTests {
 				ExecutionTest::Object testObject;
 				ExecutionTest::Object expectedObject;
 				ASSERT_EXPECTED_STORE(expectedObject, testObject);
+				ASSERT_EXPECTED_VALUE;
 
 				{
 					Threading::ThreadPoolCPP<int> threadpool(&ExecutionTest::Object::Member, &testObject);
@@ -281,6 +281,7 @@ namespace ThreadPoolUnitTests {
 					expectedObject.Member(expectedValue);
 					threadpool.Wait();
 					ASSERT_EXPECTED_STORE(expectedObject, testObject);
+					ASSERT_EXPECTED_VALUE;
 				}
 
 				{
@@ -289,6 +290,7 @@ namespace ThreadPoolUnitTests {
 					expectedObject.Member();
 					threadpool.Wait();
 					ASSERT_EXPECTED_STORE(expectedObject, testObject);
+					ASSERT_EXPECTED_VALUE;
 				}
 
 				{
@@ -318,21 +320,28 @@ namespace ThreadPoolUnitTests {
 			}
 
 			{
-				ExecutionTest::Callable testCallable;
 				ExecutionTest::Callable expectedCallable;
+				ExecutionTest::Callable testCallable;
+				ASSERT_EXPECTED_STORE(expectedCallable, testCallable);
+
 				Threading::ThreadPoolCPP<int> setter(std::ref(testCallable));
-				Threading::ThreadPoolCPP<> increment(std::ref(testCallable));
-				Threading::ThreadPoolCPP<int&> getter(std::ref(testCallable));
 				setter.Push(testValue);
 				setter.Wait();
+				expectedCallable(expectedValue);
 				ASSERT_EXPECTED_STORE(expectedCallable, testCallable);
 				ASSERT_EXPECTED_VALUE;
+				
+				Threading::ThreadPoolCPP<> increment(std::ref(testCallable));
 				increment.Push();
 				increment.Wait();
+				expectedCallable();
 				ASSERT_EXPECTED_STORE(expectedCallable, testCallable);
 				ASSERT_EXPECTED_VALUE;
-				getter.Push(std::ref(testValue));
+				
+				Threading::ThreadPoolCPP<int*> getter(std::ref(testCallable));
+				getter.Push(&testValue);
 				getter.Wait();
+				expectedCallable(&expectedValue);
 				ASSERT_EXPECTED_STORE(expectedCallable, testCallable);
 				ASSERT_EXPECTED_VALUE;
 			}
