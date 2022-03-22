@@ -58,12 +58,12 @@ namespace Threading {
 		virtual void Stop() = 0;
 	protected:
 		template <class _FuncTy, size_t..._indexes>
-		inline void _Execute(_FuncTy functor, work_type& work, std::index_sequence<_indexes...> indexSequence) {
+		static inline void _Execute(_FuncTy functor, work_type& work, std::index_sequence<_indexes...> indexSequence) {
 			std::invoke(std::move(functor), std::get<_indexes>(work)...);
 		}
 
 		template <typename _FuncTy, class _ObjTy, size_t..._indexes>
-		inline void _Execute(_FuncTy functor, _ObjTy obj, work_type& work, std::index_sequence<_indexes...> indexSequence) {
+		static inline void _Execute(_FuncTy functor, _ObjTy obj, work_type& work, std::index_sequence<_indexes...> indexSequence) {
 			std::invoke(std::move(functor), std::move(obj), std::get<_indexes>(work)...);
 		}
 	};
