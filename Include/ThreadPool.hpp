@@ -12,7 +12,7 @@ namespace Threading {
 	class ThreadPool : 
 		public
 #if defined(WIN32)
-#if _WIN32_WINNT > 0x0600
+#if !(_WIN32_WINNT > 0x0600)
 		ThreadPoolWinVista<_ArgsTy...> 
 #else
 		ThreadPoolWin<_ArgsTy...>
@@ -24,7 +24,7 @@ namespace Threading {
 	public:
 		using base_type =
 #if defined(WIN32)
-#if WINVER > 0x0600
+#if !(WINVER > 0x0600)
 			ThreadPoolWinVista<_ArgsTy...>;
 #else
 			ThreadPoolWin<_ArgsTy...>;
@@ -37,7 +37,7 @@ namespace Threading {
 		using work_type = typename base_type::work_type;
 		using work_container = typename base_type::work_container;
 	public:
-		using base_type::my_base;
+		using base_type::base_type;
 	};
 
 	class ThreadPoolWinVista {
