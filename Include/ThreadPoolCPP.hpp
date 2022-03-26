@@ -1,6 +1,6 @@
 #pragma once
 
-#include "ThreadPool.hpp"
+#include "ThreadPoolImpl.hpp"
 #include <vector>
 #include <queue>
 #include <thread>
@@ -11,49 +11,53 @@
 namespace Threading {
 
 	template <class... _ArgsTy>
-	class ThreadPoolCPP : public ThreadPool {
+	class ThreadPoolCPP : public ThreadPoolImpl<_ArgsTy...> {
 	public:
-		using thread_container = std::vector<std::thread>;
-		using work_type = std::tuple<_ArgsTy...>;
+		using base_type = ThreadPoolImpl<_ArgsTy...>;
+		using Config = typename base_type::Config;
+		using thread_type = std::thread;
+		using thread_container = std::vector<thread_type>;
+		using work_type = typename base_type::work_type;
+		using work_container = typename base_type::work_container;
 	protected:
 		std::queue<work_type> _works;
 		std::mutex _workMutex;
 		std::condition_variable _conditionVariable;
 		thread_container _threads;
-		std::thread _watcherThread;
+		//thread_type _watcherThread;
 		std::atomic_uint64_t _waitingThreads;
 	public:
 		template <typename _FuncTy>
-		ThreadPoolCPP(_FuncTy functor, Config config = Config()) : _waitingThreads(0), ThreadPool(config) {
+		ThreadPoolCPP(_FuncTy functor, Config config = Config()) : _waitingThreads(0), my_base(config) {
 			// _watcherThread(&ThreadPoolCPP::ThreadWrapper<_FuncTy>, this, functor),
-			for (decltype(_config.startingThreads) i = 0; i < _config.startingThreads; ++i) {
+			for (decltype(base_type::_config.startingThreads) i = 0; i < base_type::_config.startingThreads; ++i) {
 				_threads.push_back(std::thread(&ThreadPoolCPP::FunctionWrapper<_FuncTy>, this, functor));
 			}
 			Wait();
 		}
 
 		template <typename _RetTy>
-		ThreadPoolCPP(_RetTy(*functor)(_ArgsTy...), Config config = Config()) : _waitingThreads(0), ThreadPool(config) {
+		ThreadPoolCPP(_RetTy(*functor)(_ArgsTy...), Config config = Config()) : _waitingThreads(0), my_base(config) {
 			// _watcherThread(&ThreadPoolCPP::ThreadWrapper<decltype(functor)>, this, functor), 
-			for (decltype(_config.startingThreads) i = 0; i < _config.startingThreads; ++i) {
+			for (decltype(base_type::_config.startingThreads) i = 0; i < base_type::_config.startingThreads; ++i) {
 				_threads.push_back(std::thread(&ThreadPoolCPP::FunctionWrapper<decltype(functor)>, this, functor));
 			}
 			Wait();
 		}
 
 		template <typename _RetTy, class _ObjTy>
-		ThreadPoolCPP(_RetTy(_ObjTy::* functor)(_ArgsTy...), _ObjTy* obj, Config config = Config()) : _waitingThreads(0), ThreadPool(config) {
+		ThreadPoolCPP(_RetTy(_ObjTy::* functor)(_ArgsTy...), _ObjTy* obj, Config config = Config()) : _waitingThreads(0), my_base(config) {
 			// _watcherThread(&ThreadPoolCPP::ThreadWrapper<decltype(functor), _ObjTy>, this, functor, obj), 
-			for (decltype(_config.startingThreads) i = 0; i < _config.startingThreads; ++i) {
+			for (decltype(base_type::_config.startingThreads) i = 0; i < base_type::_config.startingThreads; ++i) {
 				_threads.push_back(std::thread(&ThreadPoolCPP::FunctionWrapper<decltype(functor), _ObjTy*>, this, functor, obj));
 			}
 			Wait();
 		}
 
 		template <typename _RetTy, class _ObjTy>
-		ThreadPoolCPP(_RetTy(_ObjTy::* functor)(_ArgsTy...) const, _ObjTy const* obj, Config config = Config()) : _waitingThreads(0), ThreadPool(config) {
+		ThreadPoolCPP(_RetTy(_ObjTy::* functor)(_ArgsTy...) const, _ObjTy const* obj, Config config = Config()) : _waitingThreads(0), my_base(config) {
 			// _watcherThread(&ThreadPoolCPP::ThreadWrapper<decltype(functor), _ObjTy const>, this, functor, obj), 
-			for (decltype(_config.startingThreads) i = 0; i < _config.startingThreads; ++i) {
+			for (decltype(base_type::_config.startingThreads) i = 0; i < base_type::_config.startingThreads; ++i) {
 				_threads.push_back(std::thread(&ThreadPoolCPP::FunctionWrapper<decltype(functor), _ObjTy const*>, this, functor, obj));
 			}
 			Wait();
@@ -61,7 +65,6 @@ namespace Threading {
 
 		~ThreadPoolCPP() {
 			Stop();
-			_conditionVariable.notify_all();
 			for (std::thread& t : _threads) {
 				if (t.joinable()) {
 					t.join();
@@ -72,13 +75,13 @@ namespace Threading {
 			//}
 		}
 
-		virtual void Push(work_type const& work) {
+		virtual void Push(work_type const& work) override {
 			std::unique_lock<std::mutex> lock(_workMutex);
 			_works.push(work);
 			_conditionVariable.notify_one();
 		}
 
-		virtual void Push(work_type const&& work) {
+		virtual void Push(work_type const&& work) override {
 			std::unique_lock<std::mutex> lock(_workMutex);
 			_works.push(work);
 			_conditionVariable.notify_one();
@@ -88,23 +91,19 @@ namespace Threading {
 			Push(std::forward_as_tuple(args...));
 		}
 
-		template <class _Iter>
-		void Push(_Iter begin, _Iter end) {
-			std::size_t count = 0;
-			while (begin != end) {
-				Push(*begin);
-				++begin;
-				++count;
-			}
+		virtual void WakeOne() override {
+			_conditionVariable.notify_one();
+		}
 
-			if (count > _waitingThreads) {
-				_conditionVariable.notify_all();
+		virtual void Wake(std::size_t number) override {
+			while (number) {
+				WakeOne();
+				--number;
 			}
-			else {
-				while (count != 0) {
-					_conditionVariable.notify_one();
-				}
-			}
+		}
+
+		virtual void WakeAll() override {
+			_conditionVariable.notify_all();
 		}
 
 		virtual void Wait() override {
@@ -114,9 +113,14 @@ namespace Threading {
 			}
 		}
 
+		virtual void Stop() override {
+			base_type::_run = false;
+			WakeAll();
+		}
+
 		template <typename _FuncTy>
 		void FunctionWrapper(_FuncTy functor) {
-			while (_run) {
+			while (base_type::_run) {
 				// Sleep thread
 				{
 					std::unique_lock<std::mutex> lock(_workMutex);
@@ -143,7 +147,7 @@ namespace Threading {
 
 		template <typename _FuncTy, class _ObjTy>
 		void FunctionWrapper(_FuncTy functor, _ObjTy obj) {
-			while (_run) {
+			while (base_type::_run) {
 				// Sleep thread
 				{
 					std::unique_lock<std::mutex> lock(_workMutex);
@@ -196,16 +200,5 @@ namespace Threading {
 		//		// TODO: Remove threads, this will probably require a Thread wrapper object
 		//	}
 		//}
-
-	protected:
-		template <class _FuncTy, size_t..._indexes>
-		inline void _Execute(_FuncTy functor, work_type& work, std::index_sequence<_indexes...> indexSequence) {
-			std::invoke(std::move(functor), std::get<_indexes>(work)...);
-		}
-
-		template <typename _FuncTy, class _ObjTy, size_t..._indexes>
-		inline void _Execute(_FuncTy functor, _ObjTy obj, work_type& work, std::index_sequence<_indexes...> indexSequence) {
-			std::invoke(std::move(functor), std::move(obj), std::get<_indexes>(work)...);
-		}
 	};
 }
