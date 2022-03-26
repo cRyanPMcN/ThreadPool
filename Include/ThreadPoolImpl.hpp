@@ -55,7 +55,11 @@ namespace Threading {
 
 		virtual void Wait() = 0;
 
-		virtual void Stop() = 0;
+		virtual void Stop() {
+			_run = false;
+			WakeAll();
+			Wait();
+		}
 	protected:
 		template <class _FuncTy, size_t..._indexes>
 		static inline void _Execute(_FuncTy functor, work_type& work, std::index_sequence<_indexes...> indexSequence) {
