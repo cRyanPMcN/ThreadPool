@@ -28,7 +28,7 @@ namespace Threading {
 		std::atomic_uint64_t _waitingThreads;
 	public:
 		template <typename _FuncTy>
-		ThreadPoolCPP(_FuncTy functor, Config config = Config()) : _waitingThreads(0), my_base(config) {
+		ThreadPoolCPP(_FuncTy functor, Config config = Config()) : _waitingThreads(0), base_type(config) {
 			// _watcherThread(&ThreadPoolCPP::ThreadWrapper<_FuncTy>, this, functor),
 			for (decltype(base_type::_config.startingThreads) i = 0; i < base_type::_config.startingThreads; ++i) {
 				_threads.push_back(std::thread(&ThreadPoolCPP::FunctionWrapper<_FuncTy>, this, functor));
@@ -37,7 +37,7 @@ namespace Threading {
 		}
 
 		template <typename _RetTy>
-		ThreadPoolCPP(_RetTy(*functor)(_ArgsTy...), Config config = Config()) : _waitingThreads(0), my_base(config) {
+		ThreadPoolCPP(_RetTy(*functor)(_ArgsTy...), Config config = Config()) : _waitingThreads(0), base_type(config) {
 			// _watcherThread(&ThreadPoolCPP::ThreadWrapper<decltype(functor)>, this, functor), 
 			for (decltype(base_type::_config.startingThreads) i = 0; i < base_type::_config.startingThreads; ++i) {
 				_threads.push_back(std::thread(&ThreadPoolCPP::FunctionWrapper<decltype(functor)>, this, functor));
@@ -46,7 +46,7 @@ namespace Threading {
 		}
 
 		template <typename _RetTy, class _ObjTy>
-		ThreadPoolCPP(_RetTy(_ObjTy::* functor)(_ArgsTy...), _ObjTy* obj, Config config = Config()) : _waitingThreads(0), my_base(config) {
+		ThreadPoolCPP(_RetTy(_ObjTy::* functor)(_ArgsTy...), _ObjTy* obj, Config config = Config()) : _waitingThreads(0), base_type(config) {
 			// _watcherThread(&ThreadPoolCPP::ThreadWrapper<decltype(functor), _ObjTy>, this, functor, obj), 
 			for (decltype(base_type::_config.startingThreads) i = 0; i < base_type::_config.startingThreads; ++i) {
 				_threads.push_back(std::thread(&ThreadPoolCPP::FunctionWrapper<decltype(functor), _ObjTy*>, this, functor, obj));
@@ -55,7 +55,7 @@ namespace Threading {
 		}
 
 		template <typename _RetTy, class _ObjTy>
-		ThreadPoolCPP(_RetTy(_ObjTy::* functor)(_ArgsTy...) const, _ObjTy const* obj, Config config = Config()) : _waitingThreads(0), my_base(config) {
+		ThreadPoolCPP(_RetTy(_ObjTy::* functor)(_ArgsTy...) const, _ObjTy const* obj, Config config = Config()) : _waitingThreads(0), base_type(config) {
 			// _watcherThread(&ThreadPoolCPP::ThreadWrapper<decltype(functor), _ObjTy const>, this, functor, obj), 
 			for (decltype(base_type::_config.startingThreads) i = 0; i < base_type::_config.startingThreads; ++i) {
 				_threads.push_back(std::thread(&ThreadPoolCPP::FunctionWrapper<decltype(functor), _ObjTy const*>, this, functor, obj));
@@ -78,13 +78,13 @@ namespace Threading {
 		virtual void Push(work_type const& work) override {
 			std::unique_lock<std::mutex> lock(_workMutex);
 			_works.push(work);
-			_conditionVariable.notify_one();
+			WakeOne();
 		}
 
 		virtual void Push(work_type const&& work) override {
 			std::unique_lock<std::mutex> lock(_workMutex);
 			_works.push(work);
-			_conditionVariable.notify_one();
+			WakeOne();
 		}
 
 		virtual void Push(_ArgsTy...args) {
