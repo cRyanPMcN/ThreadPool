@@ -140,7 +140,7 @@ namespace Threading {
 					_works.pop();
 					lock.unlock();
 
-					_Execute(functor, work, std::make_index_sequence<sizeof...(_ArgsTy)>());
+					base_type::_Execute(functor, work, std::make_index_sequence<sizeof...(_ArgsTy)>());
 				}
 			}
 		}
