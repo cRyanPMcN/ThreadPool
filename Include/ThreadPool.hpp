@@ -13,31 +13,43 @@ namespace Threading {
 		public
 #if defined(WIN32)
 #if !(_WIN32_WINNT > 0x0600)
-		ThreadPoolWinVista<_ArgsTy...> 
-#else
-		ThreadPoolWin<_ArgsTy...>
-#endif
-#else
-		ThreadPoolCPP<_ArgsTy...>
-#endif
-						{
+		ThreadPoolWinVista<_ArgsTy...> {
 	public:
-		using base_type =
-#if defined(WIN32)
-#if !(WINVER > 0x0600)
-			ThreadPoolWinVista<_ArgsTy...>;
+		using base_type = ThreadPoolWinVista<_ArgsTy...>;
 #else
-			ThreadPoolWin<_ArgsTy...>;
+		ThreadPoolWin<_ArgsTy...> {
+	public:
+		using base_type = ThreadPoolWin<_ArgsTy...>;
 #endif
 #else
-			ThreadPoolCPP<_ArgsTy...>;
+		ThreadPoolCPP<_ArgsTy...> {
+	public:
+		using base_type = ThreadPoolCPP<_ArgsTy...>;
 #endif
 
 		using Config = typename base_type::Config;
 		using work_type = typename base_type::work_type;
 		using work_container = typename base_type::work_container;
 	public:
-		using base_type::base_type;
+		template <typename _FuncTy>
+		ThreadPool(_FuncTy functor, Config config = Config()) : base_type(config) {
+
+		}
+
+		template <typename _RetTy>
+		ThreadPool(_RetTy(*functor)(_ArgsTy...), Config config = Config()) : base_type(config) {
+
+		}
+
+		template <typename _RetTy, class _ObjTy>
+		ThreadPool(_RetTy(_ObjTy::* functor)(_ArgsTy...), _ObjTy* obj, Config config = Config()) : base_type(config) {
+
+		}
+
+		template <typename _RetTy, class _ObjTy>
+		ThreadPool(_RetTy(_ObjTy::* functor)(_ArgsTy...) const, _ObjTy const* obj, Config config = Config()) : base_type(config) {
+
+		}
 	};
 
 	class ThreadPoolWinVista {
