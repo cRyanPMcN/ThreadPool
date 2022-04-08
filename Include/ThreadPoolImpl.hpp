@@ -49,7 +49,12 @@ namespace Threading {
 
 		virtual void WakeOne() = 0;
 
-		virtual void Wake(std::size_t number) = 0;
+		virtual void Wake(std::size_t number) override {
+			while (number) {
+				WakeOne();
+				--number;
+			}
+		}
 		
 		virtual void WakeAll() = 0;
 
@@ -58,7 +63,6 @@ namespace Threading {
 		virtual void Stop() {
 			_run = false;
 			WakeAll();
-			Wait();
 		}
 	protected:
 		template <class _FuncTy, size_t..._indexes>
