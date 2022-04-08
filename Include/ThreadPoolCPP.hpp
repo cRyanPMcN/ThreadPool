@@ -75,6 +75,8 @@ namespace Threading {
 			//}
 		}
 
+		using base_type::Push;
+
 		virtual void Push(work_type const& work) override {
 			std::unique_lock<std::mutex> lock(_workMutex);
 			_works.push(work);
@@ -95,28 +97,17 @@ namespace Threading {
 			_conditionVariable.notify_one();
 		}
 
-		virtual void Wake(std::size_t number) override {
-			while (number) {
-				WakeOne();
-				--number;
-			}
-		}
-
 		virtual void WakeAll() override {
 			_conditionVariable.notify_all();
 		}
 
 		virtual void Wait() override {
 			// Wait until all threads are waiting
-			while (_waitingThreads < _threads.size()) {
+			while (_waitingThreads < _threads.size() || !_works.empty()) {
 				std::this_thread::yield();
 			}
 		}
 
-		virtual void Stop() override {
-			base_type::_run = false;
-			WakeAll();
-		}
 
 		template <typename _FuncTy>
 		void FunctionWrapper(_FuncTy functor) {
