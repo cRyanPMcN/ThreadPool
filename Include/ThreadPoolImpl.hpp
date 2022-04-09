@@ -49,7 +49,7 @@ namespace Threading {
 
 		virtual void WakeOne() = 0;
 
-		virtual void Wake(std::size_t number) override {
+		virtual void Wake(std::size_t number) {
 			while (number) {
 				WakeOne();
 				--number;
