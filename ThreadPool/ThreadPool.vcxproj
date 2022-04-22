@@ -152,7 +152,8 @@
   <ItemGroup>
     <ClInclude Include="..\Include\ThreadPool.hpp" />
     <ClInclude Include="..\Include\ThreadPoolCPP.hpp" />
-    <ClInclude Include="..\Include\ThreadPoolWin.h" />
+    <ClInclude Include="..\Include\ThreadPoolImpl.hpp" />
+    <ClInclude Include="..\Include\ThreadPoolWin.hpp" />
     <ClInclude Include="..\Include\ThreadPoolWinVista.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
