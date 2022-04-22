@@ -37,14 +37,10 @@ namespace Threading {
 
 		template <class _Iter>
 		void Push(_Iter begin, _Iter end) {
-			std::size_t count = 0;
 			while (begin != end) {
 				Push(*begin);
 				++begin;
-				++count;
 			}
-
-			Wake(count);
 		}
 
 		virtual void WakeOne() = 0;
