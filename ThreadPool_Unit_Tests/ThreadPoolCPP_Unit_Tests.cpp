@@ -216,11 +216,11 @@ namespace ThreadPoolUnitTests {
 		TEST_METHOD(ThreadPoolCPP_Execution_Multiple) {
 			long expectedValue = 0;
 			long testValue = 0;
-			std::uniform_int_distribution<long> uid(1, 25);
-			std::default_random_engine m;
-			long incrementValue = uid(m);
-			incrementValue = uid(m);
-			const long REPETITION_NUMBER = uid(m);
+			std::uniform_int_distribution<long> uid(25, 250);
+			std::default_random_engine randomEngine;
+			long incrementValue = uid(randomEngine);
+			incrementValue = uid(randomEngine);
+			const long REPETITION_NUMBER = uid(randomEngine);
 			// Sanity check
 			ASSERT_EXPECTED_VALUE;
 
