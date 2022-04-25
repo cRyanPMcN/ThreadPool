@@ -17,10 +17,13 @@ namespace Threading {
 		using Config = typename base_type::Config;
 		using thread_type = std::thread;
 		using thread_container = std::vector<thread_type>;
+
+		using lock_type = std::unique_lock<std::mutex>;
+
 		using work_type = typename base_type::work_type;
 		using work_container = typename base_type::work_container;
 	protected:
-		std::queue<work_type> _works;
+		work_container _works;
 		std::mutex _workMutex;
 		std::condition_variable _conditionVariable;
 		thread_container _threads;
@@ -49,7 +52,7 @@ namespace Threading {
 		ThreadPoolCPP(_RetTy(_ObjTy::* functor)(_ArgsTy...), _ObjTy* obj, Config config = Config()) : _waitingThreads(0), base_type(config) {
 			// _watcherThread(&ThreadPoolCPP::ThreadWrapper<decltype(functor), _ObjTy>, this, functor, obj), 
 			for (decltype(base_type::_config.startingThreads) i = 0; i < base_type::_config.startingThreads; ++i) {
-				_threads.push_back(std::thread(&ThreadPoolCPP::FunctionWrapper<decltype(functor), _ObjTy*>, this, functor, obj));
+				_threads.push_back(std::thread(&ThreadPoolCPP::FunctionWrapper<decltype(functor), _ObjTy>, this, functor, obj));
 			}
 			Wait();
 		}
@@ -58,14 +61,15 @@ namespace Threading {
 		ThreadPoolCPP(_RetTy(_ObjTy::* functor)(_ArgsTy...) const, _ObjTy const* obj, Config config = Config()) : _waitingThreads(0), base_type(config) {
 			// _watcherThread(&ThreadPoolCPP::ThreadWrapper<decltype(functor), _ObjTy const>, this, functor, obj), 
 			for (decltype(base_type::_config.startingThreads) i = 0; i < base_type::_config.startingThreads; ++i) {
-				_threads.push_back(std::thread(&ThreadPoolCPP::FunctionWrapper<decltype(functor), _ObjTy const*>, this, functor, obj));
+				_threads.push_back(std::thread(&ThreadPoolCPP::FunctionWrapper<decltype(functor), _ObjTy const>, this, functor, obj));
 			}
 			Wait();
 		}
 
 		~ThreadPoolCPP() {
+			Wait();
 			Stop();
-			for (std::thread& t : _threads) {
+			for (thread_type& t : _threads) {
 				if (t.joinable()) {
 					t.join();
 				}
@@ -89,10 +93,6 @@ namespace Threading {
 			WakeOne();
 		}
 
-		virtual void Push(_ArgsTy...args) {
-			Push(std::forward_as_tuple(args...));
-		}
-
 		virtual void WakeOne() override {
 			_conditionVariable.notify_one();
 		}
@@ -106,6 +106,8 @@ namespace Threading {
 			while (_waitingThreads < _threads.size() || !_works.empty()) {
 				std::this_thread::yield();
 			}
+			// This lock is required so that Wake cannot be called before all threads are asleep
+			lock_type lock(_workMutex);
 		}
 
 
@@ -114,7 +116,7 @@ namespace Threading {
 			while (base_type::_run) {
 				// Sleep thread
 				{
-					std::unique_lock<std::mutex> lock(_workMutex);
+					lock_type lock(_workMutex);
 					++_waitingThreads;
 					_conditionVariable.wait(lock);
 					--_waitingThreads;
@@ -123,7 +125,7 @@ namespace Threading {
 				// Loop work execution
 				while (!_works.empty()) {
 					// Acquire lock and ensure there is work to be done
-					std::unique_lock<std::mutex> lock(_workMutex);
+					lock_type lock(_workMutex);
 					if (_works.empty()) {
 						break;
 					}
@@ -137,11 +139,11 @@ namespace Threading {
 		}
 
 		template <typename _FuncTy, class _ObjTy>
-		void FunctionWrapper(_FuncTy functor, _ObjTy obj) {
+		void FunctionWrapper(_FuncTy functor, _ObjTy* obj) {
 			while (base_type::_run) {
 				// Sleep thread
 				{
-					std::unique_lock<std::mutex> lock(_workMutex);
+					lock_type lock(_workMutex);
 					++_waitingThreads;
 					_conditionVariable.wait(lock);
 					--_waitingThreads;
@@ -150,7 +152,7 @@ namespace Threading {
 				// Loop work execution
 				while (!_works.empty()) {
 					// Acquire lock and ensure there is work to be done
-					std::unique_lock<std::mutex> lock(_workMutex);
+					lock_type lock(_workMutex);
 					if (_works.empty()) {
 						break;
 					}
