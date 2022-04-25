@@ -32,22 +32,22 @@ namespace Threading {
 		using work_container = typename base_type::work_container;
 	public:
 		template <typename _FuncTy>
-		ThreadPool(_FuncTy functor, Config config = Config()) : base_type(config) {
+		ThreadPool(_FuncTy functor, Config config = Config()) : base_type(functor, config) {
 
 		}
 
 		template <typename _RetTy>
-		ThreadPool(_RetTy(*functor)(_ArgsTy...), Config config = Config()) : base_type(config) {
+		ThreadPool(_RetTy(*functor)(_ArgsTy...), Config config = Config()) : base_type(functor, config) {
 
 		}
 
 		template <typename _RetTy, class _ObjTy>
-		ThreadPool(_RetTy(_ObjTy::* functor)(_ArgsTy...), _ObjTy* obj, Config config = Config()) : base_type(config) {
+		ThreadPool(_RetTy(_ObjTy::*functor)(_ArgsTy...), _ObjTy* obj, Config config = Config()) : base_type(functor, obj, config) {
 
 		}
 
 		template <typename _RetTy, class _ObjTy>
-		ThreadPool(_RetTy(_ObjTy::* functor)(_ArgsTy...) const, _ObjTy const* obj, Config config = Config()) : base_type(config) {
+		ThreadPool(_RetTy(_ObjTy::*functor)(_ArgsTy...) const, _ObjTy const* obj, Config config = Config()) : base_type(functor, obj, config) {
 
 		}
 	};
