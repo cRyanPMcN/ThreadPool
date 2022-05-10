@@ -47,8 +47,6 @@ namespace ConstructorTest {
 }
 
 namespace ExecutionTest {
-	static std::mutex testMutex;
-
 	void Function(long& x);
 
 	void OverloadFunction(long& x);
