@@ -94,12 +94,15 @@ namespace Threading {
 	protected:
 		work_container _works;
 		CONDITION_VARIABLE _conditionVariable CONDITION_VARIABLE_INIT;
-		DetailWin::CriticalSection _criticalSection;
+		CONDITION_VARIABLE _pauseVariable CONDITION_VARIABLE_INIT;
+		DetailWin::CriticalSection _workSection;
+		DetailWin::CriticalSection _sleepSection;
 		thread_container _threads;
 		unsigned long long _waitingThreads;
 		// Required, gets cast to the correct type inside thread function
 		void* _threadData;
 		ThreadPoolWin(Config config) : _waitingThreads(0), base_type(config) {
+			InitializeConditionVariable(&_conditionVariable);
 			InitializeConditionVariable(&_conditionVariable);
 		}
 	public:
@@ -148,6 +151,8 @@ namespace Threading {
 		}
 
 		~ThreadPoolWin() {
+			Resume();
+			Wait();
 			Stop();
 			for (thread_type& t : _threads) {
 				WaitForSingleObject(t.handle, INFINITE);
@@ -158,13 +163,13 @@ namespace Threading {
 		using base_type::Push;
 
 		virtual void Push(work_type const& work) override {
-			lock_type lock(_criticalSection);
+			lock_type lock(_workSection);
 			_works.push(work);
 			WakeOne();
 		}
 
 		virtual void Push(work_type const&& work) override {
-			lock_type lock(_criticalSection);
+			lock_type lock(_workSection);
 			_works.push(work);
 			WakeOne();
 		}
@@ -182,7 +187,12 @@ namespace Threading {
 			while (_waitingThreads < _threads.size() || !_works.empty()) {
 				std::this_thread::yield();
 			}
-			lock_type lock(_criticalSection);
+			lock_type lock(_sleepSection);
+		}
+
+		virtual void Resume() override {
+			base_type::Resume();
+			WakeAllConditionVariable(_pauseVariable);
 		}
 
 		template <typename _FuncTy>
@@ -194,16 +204,23 @@ namespace Threading {
 			while (threadpool._run) {
 				// Sleep thread
 				{
-					lock_type lock(threadpool._criticalSection);
+					lock_type lock(threadpool._sleepSection);
 					_InterlockedIncrement(&threadpool._waitingThreads);
 					SleepConditionVariableCS(&threadpool._conditionVariable, &lock._section._section, INFINITE);
+					_InterlockedDecrement(&threadpool._waitingThreads);
+				}
+
+				if (threadpool._pause) {
+					lock_type lock(threadpool._sleepSection);
+					_InterlockedIncrement(&threadpool._waitingThreads);
+					SleepConditionVariableCS(&threadpool._pauseVariable, &lock._section._section, INFINITE);
 					_InterlockedDecrement(&threadpool._waitingThreads);
 				}
 
 				// Loop work execution
 				while (!works.empty()) {
 					// Acquire lock and ensure there is work to be done
-					lock_type lock(threadpool._criticalSection);
+					lock_type lock(threadpool._workSection);
 					if (works.empty()) {
 						break;
 					}
@@ -228,16 +245,23 @@ namespace Threading {
 			while (threadpool._run) {
 				// Sleep thread
 				{
-					lock_type lock(threadpool._criticalSection);
+					lock_type lock(threadpool._sleepSection);
 					_InterlockedIncrement(&threadpool._waitingThreads);
 					SleepConditionVariableCS(&threadpool._conditionVariable, &lock._section._section, INFINITE);
+					_InterlockedDecrement(&threadpool._waitingThreads);
+				}
+
+				if (threadpool._pause) {
+					lock_type lock(threadpool._sleepSection);
+					_InterlockedIncrement(&threadpool._waitingThreads);
+					SleepConditionVariableCS(&threadpool._pauseVariable, &lock._section._section, INFINITE);
 					_InterlockedDecrement(&threadpool._waitingThreads);
 				}
 
 				// Loop work execution
 				while (!works.empty()) {
 					// Acquire lock and ensure there is work to be done
-					lock_type lock(threadpool._criticalSection);
+					lock_type lock(threadpool._workSection);
 					if (works.empty()) {
 						break;
 					}

@@ -22,8 +22,9 @@ namespace Threading {
 		Config _config;
 		work_container _works;
 		bool _run;
+		bool _pause
 	public:
-		ThreadPoolImpl(Config config) : _config(config), _run(true) {
+		ThreadPoolImpl(Config config) : _config(config), _run(true), _pause(false) {
 			
 		}
 
@@ -59,6 +60,15 @@ namespace Threading {
 		virtual void Stop() {
 			_run = false;
 			WakeAll();
+		}
+
+		virtual void Pause() {
+			_pause = true;
+		}
+
+		virtual void Resume() {
+			Wait();
+			_pause = false;
 		}
 	protected:
 		template <class _FuncTy, size_t..._indexes>
