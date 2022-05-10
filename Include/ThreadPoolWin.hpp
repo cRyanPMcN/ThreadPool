@@ -184,7 +184,7 @@ namespace Threading {
 
 		virtual void Wait() override {
 			// Wait until all threads are waiting
-			while (_waitingThreads < _threads.size() || !_works.empty()) {
+			while (_waitingThreads < _threads.size() || (!_works.empty() && !_pause)) {
 				std::this_thread::yield();
 			}
 			lock_type lock(_sleepSection);
