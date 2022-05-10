@@ -25,10 +25,6 @@
 	}
 
 	void ExecutionTest::OverloadFunction(long& x, long changeValue) {
-		//while (changeValue) {
-		//	_InterlockedIncrement(&x);
-		//	--changeValue;
-		//}
 		_InterlockedExchangeAdd(&x, changeValue);
 	}
 #pragma endregion
