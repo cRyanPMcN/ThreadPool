@@ -27,7 +27,6 @@ namespace Threading {
 		std::mutex _workMutex;
 		std::mutex _sleepMutex;
 		std::condition_variable _conditionVariable;
-		std::condition_variable _pauseVariable;
 		thread_container _threads;
 		//thread_type _watcherThread;
 		std::atomic_uint64_t _waitingThreads;
@@ -106,7 +105,7 @@ namespace Threading {
 
 		virtual void Wait() override {
 			// Wait until all threads are waiting
-			while (_waitingThreads < _threads.size() || (!_works.empty() && !_pause)) {
+			while (_waitingThreads < _threads.size() || !(_works.empty() || _pause)) {
 				std::this_thread::yield();
 			}
 			// This lock is required so that Wake cannot be called before all threads are asleep
@@ -115,7 +114,7 @@ namespace Threading {
 
 		virtual void Resume() override {
 			base_type::Resume();
-			_pauseVariable.notify_all();
+			Wake(_works.size());
 		}
 
 		template <typename _FuncTy>
@@ -128,16 +127,9 @@ namespace Threading {
 					_conditionVariable.wait(lock);
 					--_waitingThreads;
 				}
-
-				if (base_type::_pause) {
-					lock_type lock(_sleepMutex);
-					++_waitingThreads;
-					_pauseVariable.wait(lock);
-					--_waitingThreads;
-				}
-
+				
 				// Loop work execution
-				while (!_works.empty()) {
+				while (!_works.empty() && !_pause) {
 					// Acquire lock and ensure there is work to be done
 					lock_type lock(_workMutex);
 					if (_works.empty()) {
@@ -163,15 +155,8 @@ namespace Threading {
 					--_waitingThreads;
 				}
 
-				if (base_type::_pause) {
-					lock_type lock(_sleepMutex);
-					++_waitingThreads;
-					_pauseVariable.wait(lock);
-					--_waitingThreads;
-				}
-
 				// Loop work execution
-				while (!_works.empty()) {
+				while (!_works.empty() && !_pause) {
 					// Acquire lock and ensure there is work to be done
 					lock_type lock(_workMutex);
 					if (_works.empty()) {

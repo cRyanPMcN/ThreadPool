@@ -94,7 +94,6 @@ namespace Threading {
 	protected:
 		work_container _works;
 		CONDITION_VARIABLE _conditionVariable CONDITION_VARIABLE_INIT;
-		CONDITION_VARIABLE _pauseVariable CONDITION_VARIABLE_INIT;
 		DetailWin::CriticalSection _workSection;
 		DetailWin::CriticalSection _sleepSection;
 		thread_container _threads;
@@ -184,7 +183,7 @@ namespace Threading {
 
 		virtual void Wait() override {
 			// Wait until all threads are waiting
-			while (_waitingThreads < _threads.size() || (!_works.empty() && !_pause)) {
+			while (_waitingThreads < _threads.size() || !(_works.empty() || _pause)) {
 				std::this_thread::yield();
 			}
 			lock_type lock(_sleepSection);
@@ -192,7 +191,7 @@ namespace Threading {
 
 		virtual void Resume() override {
 			base_type::Resume();
-			WakeAllConditionVariable(_pauseVariable);
+			Wake(_works.size());
 		}
 
 		template <typename _FuncTy>
@@ -210,15 +209,8 @@ namespace Threading {
 					_InterlockedDecrement(&threadpool._waitingThreads);
 				}
 
-				if (threadpool._pause) {
-					lock_type lock(threadpool._sleepSection);
-					_InterlockedIncrement(&threadpool._waitingThreads);
-					SleepConditionVariableCS(&threadpool._pauseVariable, &lock._section._section, INFINITE);
-					_InterlockedDecrement(&threadpool._waitingThreads);
-				}
-
 				// Loop work execution
-				while (!works.empty()) {
+				while (!works.empty() && !threadpool._pause) {
 					// Acquire lock and ensure there is work to be done
 					lock_type lock(threadpool._workSection);
 					if (works.empty()) {
@@ -251,15 +243,8 @@ namespace Threading {
 					_InterlockedDecrement(&threadpool._waitingThreads);
 				}
 
-				if (threadpool._pause) {
-					lock_type lock(threadpool._sleepSection);
-					_InterlockedIncrement(&threadpool._waitingThreads);
-					SleepConditionVariableCS(&threadpool._pauseVariable, &lock._section._section, INFINITE);
-					_InterlockedDecrement(&threadpool._waitingThreads);
-				}
-
 				// Loop work execution
-				while (!works.empty()) {
+				while (!works.empty() && !threadpool._pause) {
 					// Acquire lock and ensure there is work to be done
 					lock_type lock(threadpool._workSection);
 					if (works.empty()) {
