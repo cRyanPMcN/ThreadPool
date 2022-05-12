@@ -6,13 +6,11 @@
 #include "ThreadPoolWinVista.hpp"
 
 namespace Threading {
-//#define THREADING_THREADPOOL_CUSTOM_DEFAULT ThreadPoolCPP
-#define THREADING_THREADPOOL_USE_STD
 	template <typename..._ArgsTy>
 	class ThreadPool : 
 		public
 #if defined(WIN32)
-#if !(_WIN32_WINNT > 0x0600)
+#if (_WIN32_WINNT > 0x0600)
 		ThreadPoolWinVista<_ArgsTy...> {
 	public:
 		using base_type = ThreadPoolWinVista<_ArgsTy...>;
@@ -50,9 +48,7 @@ namespace Threading {
 		ThreadPool(_RetTy(_ObjTy::*functor)(_ArgsTy...) const, _ObjTy const* obj, Config config = Config()) : base_type(functor, obj, config) {
 
 		}
-	};
 
-	class ThreadPoolWinVista {
-
+		using base_type::Pause;
 	};
 }
