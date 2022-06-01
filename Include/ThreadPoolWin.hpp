@@ -3,6 +3,7 @@
 #include "ThreadPoolImpl.hpp"
 #include <Windows.h>
 #include <vector>
+#include <set>
 #include <queue>
 #include <tuple>
 
@@ -29,10 +30,8 @@ namespace Threading {
 		};
 
 		struct SpinLock {
-		protected:
 			CriticalSection& _section;
 			unsigned long long _spinCount;
-		public:
 
 			SpinLock(CriticalSection& section) : _section(section), _spinCount(0) {
 				Lock();
@@ -192,6 +191,10 @@ namespace Threading {
 		virtual void Resume() override {
 			base_type::Resume();
 			Wake(_works.size());
+		}
+
+		virtual std::size_t Size() override {
+			return _threads.size();
 		}
 
 		template <typename _FuncTy>
