@@ -22,7 +22,7 @@ namespace Threading {
 		Config _config;
 		work_container _works;
 		bool _run;
-		bool _pause
+		bool _pause;
 	public:
 		ThreadPoolImpl(Config config) : _config(config), _run(true), _pause(false) {
 			
@@ -47,9 +47,14 @@ namespace Threading {
 		virtual void WakeOne() = 0;
 
 		virtual void Wake(std::size_t number) {
-			while (number) {
-				WakeOne();
-				--number;
+			if (number > Size()) {
+				WakeAll();
+			}
+			else {
+				while (number) {
+					WakeOne();
+					--number;
+				}
 			}
 		}
 		
@@ -70,6 +75,8 @@ namespace Threading {
 			Wait();
 			_pause = false;
 		}
+		
+		virtual std::size_t Size() = 0;
 	protected:
 		template <class _FuncTy, size_t..._indexes>
 		static inline void _Execute(_FuncTy functor, work_type& work, std::index_sequence<_indexes...> indexSequence) {
