@@ -2,7 +2,7 @@
 #include <cstddef>
 #include "ThreadPoolBase.hpp"
 #include "ThreadPoolCPP.hpp"
-#include "ThreadPoolWin.hpp"
+#include "ThreadPoolWin32.hpp"
 #include "ThreadPoolWinVista.hpp"
 
 namespace Threading {
@@ -15,9 +15,9 @@ namespace Threading {
 	public:
 		using base_type = ThreadPoolWinVista<_ArgsTy...>;
 #else
-		ThreadPoolWin<_ArgsTy...> {
+		ThreadPoolWin32<_ArgsTy...> {
 	public:
-		using base_type = ThreadPoolWin<_ArgsTy...>;
+		using base_type = ThreadPoolWin32<_ArgsTy...>;
 #endif
 #else
 		ThreadPoolCPP<_ArgsTy...> {

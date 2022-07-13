@@ -29,7 +29,7 @@
     <ClInclude Include="..\Include\ThreadPoolWinVista.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\Include\ThreadPoolWin.hpp">
+    <ClInclude Include="..\Include\ThreadPoolWin32.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\Include\ThreadPoolBase.hpp">
