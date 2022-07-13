@@ -8,11 +8,13 @@ namespace Threading {
 	class ThreadPoolImpl {
 	public:
 		struct Config {
-			std::size_t minimumThreads;
-			std::size_t maximumThreads;
-			std::size_t startingThreads;
+			size_t minimumThreads;
+			size_t maximumThreads;
+			size_t startingThreads;
 
-			Config() : minimumThreads(1), maximumThreads(16), startingThreads(1) {
+			size_t averageCalculationCount;
+
+			Config() : minimumThreads(1), maximumThreads(16), startingThreads(1), averageCalculationCount(1000) {
 
 			}
 		};

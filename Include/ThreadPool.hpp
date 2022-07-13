@@ -10,15 +10,15 @@ namespace Threading {
 	class ThreadPool : 
 		public
 #if defined(WIN32)
-#if (_WIN32_WINNT > 0x0600)
-		ThreadPoolWinVista<_ArgsTy...> {
-	public:
-		using base_type = ThreadPoolWinVista<_ArgsTy...>;
-#else
+//#if (_WIN32_WINNT > 0x0600)
+//		ThreadPoolWinVista<_ArgsTy...> {
+//	public:
+//		using base_type = ThreadPoolWinVista<_ArgsTy...>;
+//#else
 		ThreadPoolWin<_ArgsTy...> {
 	public:
 		using base_type = ThreadPoolWin<_ArgsTy...>;
-#endif
+//#endif
 #else
 		ThreadPoolCPP<_ArgsTy...> {
 	public:
