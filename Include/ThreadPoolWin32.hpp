@@ -57,7 +57,7 @@ namespace Threading {
 
 
 	template <class... _ArgsTy>
-	class ThreadPoolWin : public ThreadPoolBase<_ArgsTy...> {
+	class ThreadPoolWin32 : public ThreadPoolBase<_ArgsTy...> {
 	public:
 		using base_type = ThreadPoolBase<_ArgsTy...>;
 		using Config = typename base_type::Config;
@@ -69,10 +69,10 @@ namespace Threading {
 
 		template <typename _FuncTy>
 		struct ThreadData {
-			ThreadPoolWin& threadpool;
+			ThreadPoolWin32& threadpool;
 			_FuncTy functor;
 
-			ThreadData(ThreadPoolWin& pool, _FuncTy func) : threadpool(pool), functor(func) {
+			ThreadData(ThreadPoolWin32& pool, _FuncTy func) : threadpool(pool), functor(func) {
 
 			}
 		};
@@ -81,7 +81,7 @@ namespace Threading {
 		struct MemberThreadData : ThreadData<_FuncTy> {
 			_ObjTy* object;
 
-			MemberThreadData(ThreadPoolWin& pool, _FuncTy func, _ObjTy* obj) : object(obj), ThreadData<_FuncTy>(pool, func) {
+			MemberThreadData(ThreadPoolWin32& pool, _FuncTy func, _ObjTy* obj) : object(obj), ThreadData<_FuncTy>(pool, func) {
 
 			}
 		};
@@ -99,56 +99,56 @@ namespace Threading {
 		unsigned long long _waitingThreads;
 		// Required, gets cast to the correct type inside thread function
 		void* _threadData;
-		ThreadPoolWin(Config config) : _waitingThreads(0), base_type(config) {
+		ThreadPoolWin32(Config config) : _waitingThreads(0), base_type(config) {
 			InitializeConditionVariable(&_conditionVariable);
 			InitializeConditionVariable(&_conditionVariable);
 		}
 	public:
 		template <typename _FuncTy>
-		ThreadPoolWin(_FuncTy functor, Config config = Config()) : ThreadPoolWin(config) {
+		ThreadPoolWin32(_FuncTy functor, Config config = Config()) : ThreadPoolWin32(config) {
 			_threadData = new ThreadData<_FuncTy>(*this, functor);
 			for (decltype(base_type::_config.startingThreads) i = 0; i < base_type::_config.startingThreads; ++i) {
 				thread_type newThread;
-				newThread.handle = CreateThread(NULL, 0, &ThreadPoolWin::FunctionWrapper<_FuncTy>, _threadData, NULL, &newThread.id);
+				newThread.handle = CreateThread(NULL, 0, &ThreadPoolWin32::FunctionWrapper<_FuncTy>, _threadData, NULL, &newThread.id);
 				_threads.push_back(newThread);
 			}
 			Wait();
 		}
 
 		template <typename _RetTy>
-		ThreadPoolWin(_RetTy(*functor)(_ArgsTy...), Config config = Config()) : ThreadPoolWin(config) {
+		ThreadPoolWin32(_RetTy(*functor)(_ArgsTy...), Config config = Config()) : ThreadPoolWin32(config) {
 			_threadData = new ThreadData<decltype(functor)>(*this, functor);
 			for (decltype(base_type::_config.startingThreads) i = 0; i < base_type::_config.startingThreads; ++i) {
 				thread_type newThread;
-				newThread.handle = CreateThread(NULL, 0, &ThreadPoolWin::FunctionWrapper<decltype(functor)>, _threadData, NULL, &newThread.id);
+				newThread.handle = CreateThread(NULL, 0, &ThreadPoolWin32::FunctionWrapper<decltype(functor)>, _threadData, NULL, &newThread.id);
 				_threads.push_back(newThread);
 			}
 			Wait();
 		}
 
 		template <typename _RetTy, class _ObjTy>
-		ThreadPoolWin(_RetTy(_ObjTy::* functor)(_ArgsTy...), _ObjTy* obj, Config config = Config()) : ThreadPoolWin(config) {
+		ThreadPoolWin32(_RetTy(_ObjTy::* functor)(_ArgsTy...), _ObjTy* obj, Config config = Config()) : ThreadPoolWin32(config) {
 			_threadData = new MemberThreadData<decltype(functor), _ObjTy>(*this, functor, obj);
 			for (decltype(base_type::_config.startingThreads) i = 0; i < base_type::_config.startingThreads; ++i) {
 				thread_type newThread;
-				newThread.handle = CreateThread(NULL, 0, &ThreadPoolWin::FunctionWrapper<decltype(functor), _ObjTy>, _threadData, NULL, &newThread.id);
+				newThread.handle = CreateThread(NULL, 0, &ThreadPoolWin32::FunctionWrapper<decltype(functor), _ObjTy>, _threadData, NULL, &newThread.id);
 				_threads.push_back(newThread);
 			}
 			Wait();
 		}
 
 		template <typename _RetTy, class _ObjTy>
-		ThreadPoolWin(_RetTy(_ObjTy::* functor)(_ArgsTy...) const, _ObjTy const* obj, Config config = Config()) : ThreadPoolWin(config) {
+		ThreadPoolWin32(_RetTy(_ObjTy::* functor)(_ArgsTy...) const, _ObjTy const* obj, Config config = Config()) : ThreadPoolWin32(config) {
 			_threadData = new MemberThreadData<decltype(functor), _ObjTy const>(*this, functor, obj);
 			for (decltype(base_type::_config.startingThreads) i = 0; i < base_type::_config.startingThreads; ++i) {
 				thread_type newThread;
-				newThread.handle = CreateThread(NULL, 0, &ThreadPoolWin::FunctionWrapper<decltype(functor), _ObjTy const>, _threadData, NULL, &newThread.id);
+				newThread.handle = CreateThread(NULL, 0, &ThreadPoolWin32::FunctionWrapper<decltype(functor), _ObjTy const>, _threadData, NULL, &newThread.id);
 				_threads.push_back(newThread);
 			}
 			Wait();
 		}
 
-		~ThreadPoolWin() {
+		~ThreadPoolWin32() {
 			Resume();
 			Wait();
 			Stop();
@@ -200,7 +200,7 @@ namespace Threading {
 		template <typename _FuncTy>
 		static DWORD WINAPI FunctionWrapper(LPVOID threadData) {
 			ThreadData<_FuncTy>* data = (ThreadData<_FuncTy>*)threadData;
-			ThreadPoolWin& threadpool = data->threadpool;
+			ThreadPoolWin32& threadpool = data->threadpool;
 			work_container& works = threadpool._works;
 
 			while (threadpool._run) {
@@ -233,7 +233,7 @@ namespace Threading {
 		template <typename _FuncTy, class _ObjTy>
 		static DWORD WINAPI FunctionWrapper(LPVOID threadData) {
 			MemberThreadData<_FuncTy, _ObjTy>* data = (MemberThreadData<_FuncTy, _ObjTy>*)threadData;
-			ThreadPoolWin& threadpool = data->threadpool;
+			ThreadPoolWin32& threadpool = data->threadpool;
 			work_container& works = threadpool._works;
 			_ObjTy* obj = data->object;
 
