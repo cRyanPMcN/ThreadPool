@@ -5,7 +5,7 @@
 
 namespace Threading {
 	template <typename..._ArgsTy>
-	class ThreadPoolImpl {
+	class ThreadPoolBase {
 	public:
 		struct Config {
 			std::size_t minimumThreads;
@@ -24,7 +24,7 @@ namespace Threading {
 		bool _run;
 		bool _pause;
 	public:
-		ThreadPoolImpl(Config config) : _config(config), _run(true), _pause(false) {
+		ThreadPoolBase(Config config) : _config(config), _run(true), _pause(false) {
 			
 		}
 

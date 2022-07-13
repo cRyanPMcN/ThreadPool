@@ -1,6 +1,6 @@
 #pragma once
 
-#include "ThreadPoolImpl.hpp"
+#include "ThreadPoolBase.hpp"
 #include <Windows.h>
 #include <vector>
 #include <set>
@@ -57,9 +57,9 @@ namespace Threading {
 
 
 	template <class... _ArgsTy>
-	class ThreadPoolWin : public ThreadPoolImpl<_ArgsTy...> {
+	class ThreadPoolWin : public ThreadPoolBase<_ArgsTy...> {
 	public:
-		using base_type = ThreadPoolImpl<_ArgsTy...>;
+		using base_type = ThreadPoolBase<_ArgsTy...>;
 		using Config = typename base_type::Config;
 		using thread_type = struct _thrd {
 			HANDLE handle;

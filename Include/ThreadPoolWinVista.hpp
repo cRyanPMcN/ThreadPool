@@ -1,12 +1,12 @@
 #pragma once
-#include "ThreadPoolImpl.hpp"
+#include "ThreadPoolBase.hpp"
 #include <Windows.h>
 
 namespace Threading {
 	template <typename..._ArgsTy>
-	class ThreadPoolWinVistaVista : public ThreadPoolImpl<_ArgsTy...> {
+	class ThreadPoolWinVistaVista : public ThreadPoolBase<_ArgsTy...> {
 	public:
-		using base_type = ThreadPoolImpl<_ArgsTy...>;
+		using base_type = ThreadPoolBase<_ArgsTy...>;
 		struct Config : base_type::Config {
 
 		};

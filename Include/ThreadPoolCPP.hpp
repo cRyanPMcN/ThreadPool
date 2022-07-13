@@ -1,6 +1,6 @@
 #pragma once
 
-#include "ThreadPoolImpl.hpp"
+#include "ThreadPoolBase.hpp"
 #include <vector>
 #include <queue>
 #include <thread>
@@ -11,9 +11,9 @@
 namespace Threading {
 
 	template <class... _ArgsTy>
-	class ThreadPoolCPP : public ThreadPoolImpl<_ArgsTy...> {
+	class ThreadPoolCPP : public ThreadPoolBase<_ArgsTy...> {
 	public:
-		using base_type = ThreadPoolImpl<_ArgsTy...>;
+		using base_type = ThreadPoolBase<_ArgsTy...>;
 		using Config = typename base_type::Config;
 		using thread_type = std::thread;
 		using thread_container = std::vector<thread_type>;

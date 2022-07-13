@@ -1,6 +1,6 @@
 #pragma once
 #include <cstddef>
-#include "ThreadPoolImpl.hpp"
+#include "ThreadPoolBase.hpp"
 #include "ThreadPoolCPP.hpp"
 #include "ThreadPoolWin.hpp"
 #include "ThreadPoolWinVista.hpp"
