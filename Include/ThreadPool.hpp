@@ -3,7 +3,7 @@
 #include "ThreadPoolBase.hpp"
 #include "ThreadPoolCPP.hpp"
 #include "ThreadPoolWin32.hpp"
-#include "ThreadPoolWinVista.hpp"
+#include "ThreadPoolWin32TpApi.hpp"
 
 namespace Threading {
 	template <typename..._ArgsTy>
@@ -11,9 +11,9 @@ namespace Threading {
 		public
 #if defined(WIN32)
 #if (_WIN32_WINNT > 0x0600)
-		ThreadPoolWinVista<_ArgsTy...> {
+		ThreadPoolWin32TpApi<_ArgsTy...> {
 	public:
-		using base_type = ThreadPoolWinVista<_ArgsTy...>;
+		using base_type = ThreadPoolWin32TpApi<_ArgsTy...>;
 #else
 		ThreadPoolWin32<_ArgsTy...> {
 	public:

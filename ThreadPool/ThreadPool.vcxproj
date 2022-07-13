@@ -154,7 +154,7 @@
     <ClInclude Include="..\Include\ThreadPoolCPP.hpp" />
     <ClInclude Include="..\Include\ThreadPoolBase.hpp" />
     <ClInclude Include="..\Include\ThreadPoolWin32.hpp" />
-    <ClInclude Include="..\Include\ThreadPoolWinVista.hpp" />
+    <ClInclude Include="..\Include\ThreadPoolWin32TpApi.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

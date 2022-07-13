@@ -4,7 +4,7 @@
 
 namespace Threading {
 	template <typename..._ArgsTy>
-	class ThreadPoolWinVistaVista : public ThreadPoolBase<_ArgsTy...> {
+	class ThreadPoolWin32TpApi : public ThreadPoolBase<_ArgsTy...> {
 	public:
 		using base_type = ThreadPoolBase<_ArgsTy...>;
 		struct Config : base_type::Config {
@@ -15,7 +15,7 @@ namespace Threading {
 		PTP_CALLBACK_ENVIRON _callback;
 		PTP_CLEANUP_GROUP _cleanup;
 
-		ThreadPoolWinVistaVista(Config config) : _threadpool(CreateThreadpool(nullptr)), _cleanup(CreateThreadpoolCleanupGroup()), base_type(config) {
+		ThreadPoolWin32TpApi(Config config) : _threadpool(CreateThreadpool(nullptr)), _cleanup(CreateThreadpoolCleanupGroup()), base_type(config) {
 			InitializeThreadpoolEnvironment(_callback);
 			SetThreadpoolThreadMinimum(_threadpool, _config.minimumThreads);
 			SetThreadpoolThreadMaximum(_threadpool, _config.maximumThreads);
@@ -26,29 +26,29 @@ namespace Threading {
 	public:
 
 		template <typename _FuncTy>
-		ThreadPoolWinVistaVista(_FuncTy functor, Config config = Config()) : ThreadPoolWinVistaVista(config) {
+		ThreadPoolWin32TpApi(_FuncTy functor, Config config = Config()) : ThreadPoolWin32TpApi(config) {
 			_threadData = new ThreadData<_FuncTy>(*this, functor);
 			for (decltype(base_type::_config.startingThreads) i = 0; i < base_type::_config.startingThreads; ++i) {
 				thread_type newThread;
-				newThread.handle = CreateThread(NULL, 0, &ThreadPoolWinVistaVista::FunctionWrapper<_FuncTy>, _threadData, NULL, &newThread.id);
+				newThread.handle = CreateThread(NULL, 0, &ThreadPoolWin32TpApi::FunctionWrapper<_FuncTy>, _threadData, NULL, &newThread.id);
 				_threads.push_back(newThread);
 			}
 			Wait();
 		}
 
 		template <typename _RetTy>
-		ThreadPoolWinVistaVista(_RetTy(*functor)(_ArgsTy...), Config config = Config()) : ThreadPoolWinVistaVista(config) {
+		ThreadPoolWin32TpApi(_RetTy(*functor)(_ArgsTy...), Config config = Config()) : ThreadPoolWin32TpApi(config) {
 			_threadData = new ThreadData<decltype(functor)>(*this, functor);
 			for (decltype(base_type::_config.startingThreads) i = 0; i < base_type::_config.startingThreads; ++i) {
 				thread_type newThread;
-				newThread.handle = CreateThread(NULL, 0, &ThreadPoolWinVistaVista::FunctionWrapper<decltype(functor)>, _threadData, NULL, &newThread.id);
+				newThread.handle = CreateThread(NULL, 0, &ThreadPoolWin32TpApi::FunctionWrapper<decltype(functor)>, _threadData, NULL, &newThread.id);
 				_threads.push_back(newThread);
 			}
 			Wait();
 		}
 
 		template <typename _RetTy, class _ObjTy>
-		ThreadPoolWinVistaVista(_RetTy(_ObjTy::* functor)(_ArgsTy...), _ObjTy* obj, Config config = Config()) : ThreadPoolWinVistaVista(config) {
+		ThreadPoolWin32TpApi(_RetTy(_ObjTy::* functor)(_ArgsTy...), _ObjTy* obj, Config config = Config()) : ThreadPoolWin32TpApi(config) {
 			_threadData = new MemberThreadData<decltype(functor), _ObjTy>(*this, functor, obj);
 			for (decltype(base_type::_config.startingThreads) i = 0; i < base_type::_config.startingThreads; ++i) {
 				thread_type newThread;
@@ -69,7 +69,7 @@ namespace Threading {
 			Wait();
 		}
 
-		~ThreadPoolWinVistaVista() {
+		~ThreadPoolWin32TpApi() {
 			DestroyThreadpoolEnvironment(_callback);
 		}
 	};
