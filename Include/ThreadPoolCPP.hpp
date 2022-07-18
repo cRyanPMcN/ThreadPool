@@ -104,9 +104,8 @@ namespace Threading {
 			lock_type lock(_sleepMutex);
 		}
 
-		virtual void Resume() override {
-			base_type::Resume();
-			Wake(_works.size());
+		virtual std::size_t Size() override {
+			return _threads.size();
 		}
 
 		template <typename _FuncTy>
