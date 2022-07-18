@@ -1,24 +1,24 @@
 #pragma once
 #include <cstddef>
-#include "ThreadPoolImpl.hpp"
+#include "ThreadPoolBase.hpp"
 #include "ThreadPoolCPP.hpp"
-#include "ThreadPoolWin.hpp"
-#include "ThreadPoolWinVista.hpp"
+#include "ThreadPoolWin32.hpp"
+#include "ThreadPoolWin32TpApi.hpp"
 
 namespace Threading {
 	template <typename..._ArgsTy>
 	class ThreadPool : 
 		public
 #if defined(WIN32)
-//#if (_WIN32_WINNT > 0x0600)
-//		ThreadPoolWinVista<_ArgsTy...> {
-//	public:
-//		using base_type = ThreadPoolWinVista<_ArgsTy...>;
-//#else
-		ThreadPoolWin<_ArgsTy...> {
+#if (_WIN32_WINNT > 0x0600)
+		ThreadPoolWin32TpApi<_ArgsTy...> {
 	public:
-		using base_type = ThreadPoolWin<_ArgsTy...>;
-//#endif
+		using base_type = ThreadPoolWin32TpApi<_ArgsTy...>;
+#else
+		ThreadPoolWin32<_ArgsTy...> {
+	public:
+		using base_type = ThreadPoolWin32<_ArgsTy...>;
+#endif
 #else
 		ThreadPoolCPP<_ArgsTy...> {
 	public:

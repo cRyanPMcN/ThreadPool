@@ -26,13 +26,13 @@
     <ClInclude Include="..\Include\ThreadPoolCPP.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\Include\ThreadPoolWinVista.hpp">
+    <ClInclude Include="..\Include\ThreadPoolWin32TpApi.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\Include\ThreadPoolWin.hpp">
+    <ClInclude Include="..\Include\ThreadPoolWin32.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\Include\ThreadPoolImpl.hpp">
+    <ClInclude Include="..\Include\ThreadPoolBase.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
