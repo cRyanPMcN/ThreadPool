@@ -74,6 +74,7 @@ namespace Threading {
 		virtual void Resume() {
 			Wait();
 			_pause = false;
+			Wake(Size());
 		}
 		
 		virtual std::size_t Size() = 0;
