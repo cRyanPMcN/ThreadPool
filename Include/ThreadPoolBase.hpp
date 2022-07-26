@@ -4,7 +4,6 @@
 #include <queue>
 
 namespace Threading {
-	template <typename..._ArgsTy>
 	class ThreadPoolBase {
 	public:
 		struct Config {
@@ -16,11 +15,42 @@ namespace Threading {
 
 			}
 		};
-		using work_type = std::tuple<_ArgsTy...>;
-		using work_container = std::queue<work_type>;
+
+		struct work_base {
+			virtual void Execute() = 0;
+		};
+
+		template <class _Func, class..._Args>
+		struct work_type : work_base {
+			_Func functor;
+			std::tuple<_Args...> args;
+
+			work_type(_Func func, std::tuple<_Args...>& arg) : functor(func), args(arg) {
+
+			}
+
+			work_type(_Func func, std::tuple<_Args...>&& arg) : functor(func), args(arg) {
+
+			}
+
+			work_type(_Func func, _Args... args) : work_type(func, std::forward_as_tuple(args...)) {
+
+			}
+
+			template <size_t..._indexes>
+			inline void Execute(std::index_sequence<_indexes...> indexSequence) {
+				std::invoke(std::move(functor), std::get<_indexes>(args)...);
+			}
+
+			void Execute() override {
+				Execute(std::make_index_sequence<sizeof...(_Args)>());
+			}
+		};
+
+		using container_type = std::queue<work_base*>;
 	protected:
 		Config _config;
-		work_container _works;
+		container_type _works;
 		bool _run;
 		bool _pause;
 	public:
@@ -28,20 +58,16 @@ namespace Threading {
 			
 		}
 
-		virtual void Push(work_type const& work) = 0;
-
-		virtual void Push(work_type const&& work) = 0;
-
-		virtual void Push(_ArgsTy...args) {
-			Push(std::forward_as_tuple(args...));
+		virtual void Push(work_base* work) = 0;
+		
+		template <class _FuncTy, class..._ArgsTy>
+		void Push(work_type<_FuncTy, _ArgsTy...>* work) {
+			Push((work_base*)work);
 		}
 
-		template <class _Iter>
-		void Push(_Iter begin, _Iter end) {
-			while (begin != end) {
-				Push(*begin);
-				++begin;
-			}
+		template <class _FuncTy, class..._ArgsTy>
+		void Push(_FuncTy functor, _ArgsTy...args) {
+			Push(new work_type<_FuncTy, _ArgsTy...>(functor, args...));
 		}
 
 		virtual void WakeOne() = 0;
@@ -77,16 +103,15 @@ namespace Threading {
 		}
 		
 		virtual std::size_t Size() = 0;
-	protected:
-		template <class _FuncTy, size_t..._indexes>
-		static inline void _Execute(_FuncTy functor, work_type& work, std::index_sequence<_indexes...> indexSequence) {
-			std::invoke(std::move(functor), std::get<_indexes>(work)...);
-		}
-
-		template <typename _FuncTy, class _ObjTy, size_t..._indexes>
-		static inline void _Execute(_FuncTy functor, _ObjTy obj, work_type& work, std::index_sequence<_indexes...> indexSequence) {
-			std::invoke(std::move(functor), std::move(obj), std::get<_indexes>(work)...);
-		}
+	//protected:
+	//	template <class _FuncTy, size_t..._indexes>
+	//	static inline void _Execute(_FuncTy functor, work_type& work, std::index_sequence<_indexes...> indexSequence) {
+	//		std::invoke(std::move(functor), std::get<_indexes>(work)...);
+	//	}
+	//
+	//	template <typename _FuncTy, class _ObjTy, size_t..._indexes>
+	//	static inline void _Execute(_FuncTy functor, _ObjTy obj, work_type& work, std::index_sequence<_indexes...> indexSequence) {
+	//		std::invoke(std::move(functor), std::move(obj), std::get<_indexes>(work)...);
+	//	}
 	};
-
 }
