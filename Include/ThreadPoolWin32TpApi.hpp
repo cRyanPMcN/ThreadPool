@@ -3,74 +3,62 @@
 #include <Windows.h>
 
 namespace Threading {
-	template <typename..._ArgsTy>
-	class ThreadPoolWin32TpApi : public ThreadPoolBase<_ArgsTy...> {
+	class ThreadPoolWin32TpApi : public ThreadPoolBase {
 	public:
-		using base_type = ThreadPoolBase<_ArgsTy...>;
-		struct Config : base_type::Config {
+		using base_type = ThreadPoolBase;
+		base_type::Config;
+		struct WorkContext {
+			ThreadPoolWin32TpApi& threadpool;
+			work_base* work;
 
+			WorkContext(ThreadPoolWin32TpApi& tp, work_base* w) : threadpool(tp), work(w) {
+
+			}
 		};
 	protected:
 		PTP_POOL _threadpool;
 		PTP_CALLBACK_ENVIRON _callback;
 		PTP_CLEANUP_GROUP _cleanup;
-
-		ThreadPoolWin32TpApi(Config config) : _threadpool(CreateThreadpool(nullptr)), _cleanup(CreateThreadpoolCleanupGroup()), base_type(config) {
+		unsigned long long _workingThreads;
+	public:
+		ThreadPoolWin32TpApi(Config config = Config()) : _threadpool(CreateThreadpool(nullptr)), _cleanup(CreateThreadpoolCleanupGroup()), _workingThreads(0), base_type(config) {
 			InitializeThreadpoolEnvironment(_callback);
 			SetThreadpoolThreadMinimum(_threadpool, _config.minimumThreads);
 			SetThreadpoolThreadMaximum(_threadpool, _config.maximumThreads);
-			SetThreadpoolCallbackPool(&_callback, pool);
-			SetThreadpoolCallbackCleanupGroup(_callbac, _cleanup, NULL);
-		}
-
-	public:
-
-		template <typename _FuncTy>
-		ThreadPoolWin32TpApi(_FuncTy functor, Config config = Config()) : ThreadPoolWin32TpApi(config) {
-			_threadData = new ThreadData<_FuncTy>(*this, functor);
-			for (decltype(base_type::_config.startingThreads) i = 0; i < base_type::_config.startingThreads; ++i) {
-				thread_type newThread;
-				newThread.handle = CreateThread(NULL, 0, &ThreadPoolWin32TpApi::FunctionWrapper<_FuncTy>, _threadData, NULL, &newThread.id);
-				_threads.push_back(newThread);
-			}
-			Wait();
-		}
-
-		template <typename _RetTy>
-		ThreadPoolWin32TpApi(_RetTy(*functor)(_ArgsTy...), Config config = Config()) : ThreadPoolWin32TpApi(config) {
-			_threadData = new ThreadData<decltype(functor)>(*this, functor);
-			for (decltype(base_type::_config.startingThreads) i = 0; i < base_type::_config.startingThreads; ++i) {
-				thread_type newThread;
-				newThread.handle = CreateThread(NULL, 0, &ThreadPoolWin32TpApi::FunctionWrapper<decltype(functor)>, _threadData, NULL, &newThread.id);
-				_threads.push_back(newThread);
-			}
-			Wait();
-		}
-
-		template <typename _RetTy, class _ObjTy>
-		ThreadPoolWin32TpApi(_RetTy(_ObjTy::* functor)(_ArgsTy...), _ObjTy* obj, Config config = Config()) : ThreadPoolWin32TpApi(config) {
-			_threadData = new MemberThreadData<decltype(functor), _ObjTy>(*this, functor, obj);
-			for (decltype(base_type::_config.startingThreads) i = 0; i < base_type::_config.startingThreads; ++i) {
-				thread_type newThread;
-				newThread.handle = CreateThread(NULL, 0, &ThreadPoolWinVista::FunctionWrapper<decltype(functor), _ObjTy>, _threadData, NULL, &newThread.id);
-				_threads.push_back(newThread);
-			}
-			Wait();
-		}
-
-		template <typename _RetTy, class _ObjTy>
-		ThreadPoolWinVista(_RetTy(_ObjTy::* functor)(_ArgsTy...) const, _ObjTy const* obj, Config config = Config()) : ThreadPoolWinVista(config) {
-			_threadData = new MemberThreadData<decltype(functor), _ObjTy const>(*this, functor, obj);
-			for (decltype(base_type::_config.startingThreads) i = 0; i < base_type::_config.startingThreads; ++i) {
-				thread_type newThread;
-				newThread.handle = CreateThread(NULL, 0, &ThreadPoolWinVista::FunctionWrapper<decltype(functor), _ObjTy const>, _threadData, NULL, &newThread.id);
-				_threads.push_back(newThread);
-			}
-			Wait();
+			SetThreadpoolCallbackPool(_callback, _threadpool);
+			SetThreadpoolCallbackCleanupGroup(_callback, _cleanup, NULL);
 		}
 
 		~ThreadPoolWin32TpApi() {
 			DestroyThreadpoolEnvironment(_callback);
+		}
+
+		void Push(work_base* work) {
+			PTP_WORK pwork = CreateThreadpoolWork(&ThreadPoolWin32TpApi::Function_Wrapper, new WorkContext(*this, work), _callback);
+			SubmitThreadpoolWork(pwork);
+			CloseThreadpoolWork(pwork);
+		}
+
+		virtual void WakeOne() override {
+			// This cannot be done
+		}
+
+		virtual void WakeAll() override {
+			// This cannot be done
+		}
+
+		virtual void Wait() override {
+			while (_workingThreads > 0) {
+				_Thrd_yield();
+				//Sleep(0);
+			}
+		}
+
+		static void NTAPI Function_Wrapper(PTP_CALLBACK_INSTANCE instance, PVOID data, PTP_WORK pwork) {
+			WorkContext* context = (WorkContext*)data;
+			_InterlockedIncrement(&context->threadpool._workingThreads);
+			context->work->Execute();
+			_InterlockedDecrement(&context->threadpool._workingThreads);
 		}
 	};
 }
