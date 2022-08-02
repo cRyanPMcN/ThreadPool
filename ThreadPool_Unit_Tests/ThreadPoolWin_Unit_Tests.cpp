@@ -1,381 +1,301 @@
 #include "pch.h"
 #include "UnitTestImplementations.hpp"
 #include "CppUnitTest.h"
-#include "ThreadPoolWin.hpp"
-#include <functional>
+#include "ThreadPoolWin32.hpp"
 #include <random>
+
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 
 namespace ThreadPoolUnitTests {
-	TEST_CLASS(ThreadPoolWinUnitTests) {
-	public:
-		// This test checks if each ThreadPool will construct when scoped alone. This allows easier debugging for which test causes a compiler error
-		TEST_METHOD(ThreadPoolWin_Constructor_Incongruous) {
-			{
-				Threading::ThreadPoolWin nonMemberStaticThreadPool(ConstructorTest::Function);
-				Logger::WriteMessage("ThreadPoolWin->Constructor: Non-member static function threadpool construction completed.\n");
-			}
+	TEST_CLASS(ThreadPoolWin32UnitTests) {
+public:
+	TEST_METHOD(ThreadPoolWin32_Constructor) {
+		Threading::ThreadPoolWin32 threadpool;
+		Logger::WriteMessage("ThreadPoolWin32->Constructor Passed.\n");
+	}
 
-			{
-				Threading::ThreadPoolWin memberStaticThreadPool(&ConstructorTest::Object::Static);
-				Logger::WriteMessage("ThreadPoolWin->Constructor: Member static function threadpool construction completed.\n");
-			}
+#define ASSERT_EXPECTED_VALUE(expected, test) Assert::AreEqual(expected, test)
 
-			{
-				ConstructorTest::Object object;
-				Threading::ThreadPoolWin memberThreadPool(&ConstructorTest::Object::Member, &object);
-				Logger::WriteMessage("ThreadPoolWin->Constructor: Member function threadpool construction completed.\n");
-			}
+	TEST_METHOD(ThreadPoolWin32_Execution_Single) {
+		Logger::WriteMessage("ThreadPoolWin32->Execution_Single: Start\n");
+		Threading::ThreadPoolWin32 threadpool;
+		long expectedValue = 0;
+		long testValue = 0;
+		long incrementValue = 5;
+		// Sanity check
+		ASSERT_EXPECTED_VALUE(expectedValue, testValue);
 
-			{
-				ConstructorTest::Object object;
-				Threading::ThreadPoolWin constMemberThreadPool(&ConstructorTest::Object::ConstMember, &object);
-				Logger::WriteMessage("ThreadPoolWin->Constructor: Const member function threadpool construction completed.\n");
-			}
+		{
+			threadpool.Push(ExecutionTest::Function, std::ref(testValue));
+			ExecutionTest::Function(expectedValue);
+			threadpool.Wait();
+			ASSERT_EXPECTED_VALUE(expectedValue, testValue);
+		}
+		Logger::WriteMessage("ThreadPoolWin32->Execution_Single: Static Function Passed.\n");
 
-			{
-				Threading::ThreadPoolWin overloadVoidThreadPool((void(*)())(ConstructorTest::OverloadFunction));
-				Logger::WriteMessage("ThreadPoolWin->Constructor: Overloaded static function threadpool construction completed.\n");
-			}
-
-			{
-				Threading::ThreadPoolWin overloadIntThreadPool((void(*)(long))(ConstructorTest::OverloadFunction));
-				Logger::WriteMessage("ThreadPoolWin->Constructor: Overloaded static function threadpool construction completed.\n");
-			}
-
-			{
-				Threading::ThreadPoolWin overloadVoidThreadPool((void(*)())(ConstructorTest::Object::OverLoadStatic));
-				Logger::WriteMessage("ThreadPoolWin->Constructor: Overloaded member static function threadpool construction completed.\n");
-			}
-
-			{
-				Threading::ThreadPoolWin overloadIntThreadPool((void(*)(long))(ConstructorTest::Object::OverLoadStatic));
-				Logger::WriteMessage("ThreadPoolWin->Constructor: Overloaded member static function threadpool construction completed.\n");
-			}
-
-			{
-				ConstructorTest::Object object;
-				Threading::ThreadPoolWin overloadVoidThreadPool((void(ConstructorTest::Object::*)())(&ConstructorTest::Object::OverLoadMember), &object);
-				Logger::WriteMessage("ThreadPoolWin->Constructor: Overloaded member static function threadpool construction completed.\n");
-			}
-
-			{
-				ConstructorTest::Object object;
-				Threading::ThreadPoolWin overloadIntThreadPool((void(ConstructorTest::Object::*)(long))(&ConstructorTest::Object::OverLoadMember), &object);
-				Logger::WriteMessage("ThreadPoolWin->Constructor: Overloaded member static function threadpool construction completed.\n");
-			}
-
-			{
-				ConstructorTest::Object object;
-				auto func = std::bind(&ConstructorTest::Object::Member, &object);
-				Threading::ThreadPoolWin bindThreadPool(func);
-				Logger::WriteMessage("ThreadPoolWin->Constructor: std::bind function object threadpool construction completed.\n");
-			}
-
-			{
-				ConstructorTest::Callable callable;
-				Threading::ThreadPoolWin callableThreadPool(callable);
-				Logger::WriteMessage("ThreadPoolWin->Constructor: Callable object threadpool construction completed.\n");
-			}
-
-			Assert::AreEqual(0, 0);
+		{
+			threadpool.Push((void(*)(long&))ExecutionTest::OverloadFunction, std::ref(testValue));
+			threadpool.Push((void(*)(long&, long))ExecutionTest::OverloadFunction, std::ref(testValue), incrementValue);
+			ExecutionTest::OverloadFunction(expectedValue);
+			ExecutionTest::OverloadFunction(expectedValue, incrementValue);
+			threadpool.Wait();
+			ASSERT_EXPECTED_VALUE(expectedValue, testValue);
 		}
 
-		// This test checks if all threadpools with successfully construct when scoped congruously
-		TEST_METHOD(ThreadPoolWin_Constructor_Congruous) {
-			Threading::ThreadPoolWin nonMemberStaticThreadPool(ConstructorTest::Function);
-			Logger::WriteMessage("ThreadPoolWin->Constructor: Non-member static function threadpool construction completed.\n");
+		Logger::WriteMessage("ThreadPoolWin32->Execution_Single: Static Overload Function Passed.\n");
 
-			Threading::ThreadPoolWin memberStaticThreadPool(&ConstructorTest::Object::Static);
-			Logger::WriteMessage("ThreadPoolWin->Constructor: Member static function threadpool construction completed.\n");
-
-			ConstructorTest::Object object;
-			Threading::ThreadPoolWin memberThreadPool(&ConstructorTest::Object::Member, &object);
-			Logger::WriteMessage("ThreadPoolWin->Constructor: Member function threadpool construction completed.\n");
-
-			Threading::ThreadPoolWin constMemberThreadPool(&ConstructorTest::Object::ConstMember, &object);
-			Logger::WriteMessage("ThreadPoolWin->Constructor: Const member function threadpool construction completed.\n");
-
-			Threading::ThreadPoolWin staticOverloadVoidThreadPool((void(*)())(ConstructorTest::OverloadFunction));
-			Logger::WriteMessage("ThreadPoolWin->Constructor: Overloaded static function threadpool construction completed.\n");
-
-			Threading::ThreadPoolWin staticOverloadIntThreadPool((void(*)(long))(ConstructorTest::OverloadFunction));
-			Logger::WriteMessage("ThreadPoolWin->Constructor: Overloaded static function threadpool construction completed.\n");
-
-			Threading::ThreadPoolWin staticMemberOverloadVoidThreadPool((void(*)())(ConstructorTest::Object::OverLoadStatic));
-			Logger::WriteMessage("ThreadPoolWin->Constructor: Overloaded member static function threadpool construction completed.\n");
-
-			Threading::ThreadPoolWin staticMemberOverloadIntThreadPool((void(*)(long))(ConstructorTest::Object::OverLoadStatic));
-			Logger::WriteMessage("ThreadPoolWin->Constructor: Overloaded member static function threadpool construction completed.\n");
-
-			Threading::ThreadPoolWin memberOverloadVoidThreadPool((void(ConstructorTest::Object::*)())(&ConstructorTest::Object::OverLoadMember), &object);
-			Logger::WriteMessage("ThreadPoolWin->Constructor: Overloaded member static function threadpool construction completed.\n");
-
-			Threading::ThreadPoolWin memberOverloadIntThreadPool((void(ConstructorTest::Object::*)(long))(&ConstructorTest::Object::OverLoadMember), &object);
-			Logger::WriteMessage("ThreadPoolWin->Constructor: Overloaded member static function threadpool construction completed.\n");
-
-			auto func = std::bind(&ConstructorTest::Object::Member, &object);
-			Threading::ThreadPoolWin bindThreadPool(func);
-			Logger::WriteMessage("ThreadPoolWin->Constructor: std::bind function object threadpool construction completed.\n");
-
-			ConstructorTest::Callable callable;
-			Threading::ThreadPoolWin callableThreadPool(callable);
-			Logger::WriteMessage("ThreadPoolWin->Constructor: Callable object threadpool construction completed.\n");
-
-			Assert::AreEqual(0, 0);
+		{
+			threadpool.Push(ExecutionTest::Object::Static, std::ref(testValue));
+			ExecutionTest::Object::Static(expectedValue);
+			threadpool.Wait();
+			ASSERT_EXPECTED_VALUE(expectedValue, testValue);
 		}
 
-#define ASSERT_EXPECTED_VALUE Assert::AreEqual(expectedValue, testValue)
-#define ASSERT_EXPECTED_STORE(expected, test) Assert::AreEqual(expected.store, test.store)
+		Logger::WriteMessage("ThreadPoolWin32->Execution_Single: Class Static Member Function Passed.\n");
 
-		TEST_METHOD(ThreadPoolWin_Execution_Single) {
-			long expectedValue = 0;
-			long testValue = 0;
-			long incrementValue = 5;
-			// Sanity check
-			ASSERT_EXPECTED_VALUE;
+		{
+			ExecutionTest::Object testObject;
+			ExecutionTest::Object expectedObject;
+			ASSERT_EXPECTED_VALUE(expectedObject.store, testObject.store);
+			ASSERT_EXPECTED_VALUE(expectedValue, testValue);
 
 			{
-				Threading::ThreadPoolWin threadpool(ExecutionTest::Function);
-				threadpool.Push(std::ref(testValue));
-				ExecutionTest::Function(expectedValue);
+				threadpool.Push((void(ExecutionTest::Object::*)(long)) & ExecutionTest::Object::Member, &testObject, testValue);
+				expectedObject.Member(expectedValue);
 				threadpool.Wait();
-				ASSERT_EXPECTED_VALUE;
+				ASSERT_EXPECTED_VALUE(expectedObject.store, testObject.store);
+				ASSERT_EXPECTED_VALUE(expectedValue, testValue);
 			}
 
+			Logger::WriteMessage("ThreadPoolWin32->Execution_Single: Member Function One-Arg Passed.\n");
+
 			{
-				Threading::ThreadPoolWin<long&> threadpool(ExecutionTest::OverloadFunction);
-				Threading::ThreadPoolWin<long&, long> overloadThreadPool(ExecutionTest::OverloadFunction);
-				threadpool.Push(std::ref(testValue));
-				overloadThreadPool.Push(std::ref(testValue), incrementValue);
+				threadpool.Push((void(ExecutionTest::Object::*)()) & ExecutionTest::Object::Member, &testObject);
+				expectedObject.Member();
+				threadpool.Wait();
+				ASSERT_EXPECTED_VALUE(expectedObject.store, testObject.store);
+				ASSERT_EXPECTED_VALUE(expectedValue, testValue);
+			}
+
+			Logger::WriteMessage("ThreadPoolWin32->Execution_Single: Member Function Zero-Arg Passed.\n");
+
+			{
+				threadpool.Push(&ExecutionTest::Object::ConstMember, testObject, std::ref(testValue));
+				expectedObject.ConstMember(expectedValue);
+				threadpool.Wait();
+				ASSERT_EXPECTED_VALUE(expectedObject.store, testObject.store);
+				ASSERT_EXPECTED_VALUE(expectedValue, testValue);
+			}
+
+			Logger::WriteMessage("ThreadPoolWin32->Execution_Single: Const-Member Function Passed.\n");
+		}
+
+
+		{
+			threadpool.Push((void(*)(long&))ExecutionTest::Object::OverLoadStatic, std::ref(testValue));
+			ExecutionTest::Object::OverLoadStatic(expectedValue);
+			threadpool.Wait();
+			ASSERT_EXPECTED_VALUE(expectedValue, testValue);
+		}
+
+		Logger::WriteMessage("ThreadPoolWin32->Execution_Single: Class Static OverLoad Function Stage-One Passed.\n");
+
+		{
+			threadpool.Push((void(*)(long&, long))ExecutionTest::Object::OverLoadStatic, std::ref(testValue), incrementValue);
+			ExecutionTest::Object::OverLoadStatic(expectedValue, incrementValue);
+			threadpool.Wait();
+			ASSERT_EXPECTED_VALUE(expectedValue, testValue);
+		}
+
+		Logger::WriteMessage("ThreadPoolWin32->Execution_Single: Class Static OverLoad Function Stage-Two Passed\n");
+
+		{
+			ExecutionTest::Callable expectedCallable;
+			ExecutionTest::Callable testCallable;
+			ASSERT_EXPECTED_VALUE(expectedCallable.store, testCallable.store);
+			Logger::WriteMessage("ThreadPoolWin32->Execution_Single: Callable Object Stage-One Passed.\n");
+
+			threadpool.Push(std::ref(testCallable), testValue);
+			threadpool.Wait();
+			expectedCallable(expectedValue);
+			ASSERT_EXPECTED_VALUE(expectedCallable.store, testCallable.store);
+			ASSERT_EXPECTED_VALUE(expectedValue, testValue);
+			Logger::WriteMessage("ThreadPoolWin32->Execution_Single: Callable Object Stage-Two Passed.\n");
+
+			threadpool.Push(std::ref(testCallable));
+			threadpool.Wait();
+			expectedCallable();
+			ASSERT_EXPECTED_VALUE(expectedCallable.store, testCallable.store);
+			ASSERT_EXPECTED_VALUE(expectedValue, testValue);
+			Logger::WriteMessage("ThreadPoolWin32->Execution_Single: Callable Object Stage-Three Passed.\n");
+
+			threadpool.Push(std::ref(testCallable), &testValue);
+			threadpool.Wait();
+			expectedCallable(&expectedValue);
+			ASSERT_EXPECTED_VALUE(expectedCallable.store, testCallable.store);
+			ASSERT_EXPECTED_VALUE(expectedValue, testValue);
+			Logger::WriteMessage("ThreadPoolWin32->Execution_Single: Callable Object Stage-Four Passed.\n");
+		}
+
+		Logger::WriteMessage("ThreadPoolWin32->Execution_Single: Callable Object Passed.\n");
+
+		Logger::WriteMessage("ThreadPoolWin32->Execution_Single: End\n");
+	}
+
+	TEST_METHOD(ThreadPoolWin32_Execution_Multiple) {
+		Logger::WriteMessage("ThreadPoolWin32->Execution_Multiple: Start\n");
+		long expectedValue = 0;
+		long testValue = 0;
+		std::uniform_int_distribution<long> uid(25, 250);
+		std::default_random_engine randomEngine;
+		long incrementValue = uid(randomEngine);
+		incrementValue = uid(randomEngine);
+		const long REPETITION_NUMBER = uid(randomEngine);
+		// Sanity check
+		ASSERT_EXPECTED_VALUE(expectedValue, testValue);
+		Threading::ThreadPoolWin32 threadpool;
+
+		{
+			for (long i = 0; i < REPETITION_NUMBER; ++i) {
+				threadpool.Push(ExecutionTest::Function, std::ref(testValue));
+				ExecutionTest::Function(expectedValue);
+			}
+			threadpool.Wait();
+			ASSERT_EXPECTED_VALUE(expectedValue, testValue);
+		}
+
+		Logger::WriteMessage("ThreadPoolWin32->Execution_Multiple: Static Function Passed\n");
+
+		{
+			for (long i = 0; i < REPETITION_NUMBER; ++i) {
+				threadpool.Push((void(*)(long&))ExecutionTest::OverloadFunction, std::ref(testValue));
+				threadpool.Push<void(*)(long&, long), long&, long>(ExecutionTest::OverloadFunction, std::ref(testValue), incrementValue);
 				ExecutionTest::OverloadFunction(expectedValue);
 				ExecutionTest::OverloadFunction(expectedValue, incrementValue);
-				threadpool.Wait();
-				overloadThreadPool.Wait();
-				ASSERT_EXPECTED_VALUE;
 			}
+			threadpool.Wait();
+			ASSERT_EXPECTED_VALUE(expectedValue, testValue);
+		}
 
-			{
-				Threading::ThreadPoolWin threadpool(ExecutionTest::Object::Static);
-				threadpool.Push(std::ref(testValue));
+		Logger::WriteMessage("ThreadPoolWin32->Execution_Multiple: Static Overload Function Passed\n");
+
+		{
+			for (long i = 0; i < REPETITION_NUMBER; ++i) {
+				threadpool.Push(ExecutionTest::Object::Static, std::ref(testValue));
 				ExecutionTest::Object::Static(expectedValue);
-				threadpool.Wait();
-				ASSERT_EXPECTED_VALUE;
 			}
+			threadpool.Wait();
+			ASSERT_EXPECTED_VALUE(expectedValue, testValue);
+		}
+
+		Logger::WriteMessage("ThreadPoolWin32->Execution_Multiple: Static Member Function Passed\n");
+
+		{
+			ExecutionTest::Object testObject;
+			ExecutionTest::Object expectedObject;
+			ASSERT_EXPECTED_VALUE(expectedObject.store, testObject.store);
+			ASSERT_EXPECTED_VALUE(expectedValue, testValue);
 
 			{
-				ExecutionTest::Object testObject;
-				ExecutionTest::Object expectedObject;
-				ASSERT_EXPECTED_STORE(expectedObject, testObject);
-				ASSERT_EXPECTED_VALUE;
-
-				{
-					Threading::ThreadPoolWin<long> threadpool(&ExecutionTest::Object::Member, &testObject);
-					threadpool.Push(testValue);
+				for (long i = 0; i < REPETITION_NUMBER; ++i) {
+					threadpool.Push<void(ExecutionTest::Object::*)(long)>(&ExecutionTest::Object::Member, &testObject, testValue);
 					expectedObject.Member(expectedValue);
-					threadpool.Wait();
-					ASSERT_EXPECTED_STORE(expectedObject, testObject);
-					ASSERT_EXPECTED_VALUE;
 				}
+				threadpool.Wait();
+				ASSERT_EXPECTED_VALUE(expectedObject.store, testObject.store);
+				ASSERT_EXPECTED_VALUE(expectedValue, testValue);
+			}
 
-				{
-					Threading::ThreadPoolWin<> threadpool(&ExecutionTest::Object::Member, &testObject);
-					threadpool.Push();
+			Logger::WriteMessage("ThreadPoolWin32->Execution_Multiple: Member Function One-Arg Passed\n");
+
+			{
+				for (long i = 0; i < REPETITION_NUMBER; ++i) {
+					threadpool.Push<void(ExecutionTest::Object::*)()>(&ExecutionTest::Object::Member, &testObject);
 					expectedObject.Member();
-					threadpool.Wait();
-					ASSERT_EXPECTED_STORE(expectedObject, testObject);
-					ASSERT_EXPECTED_VALUE;
 				}
+				threadpool.Wait();
+				ASSERT_EXPECTED_VALUE(expectedObject.store, testObject.store);
+				ASSERT_EXPECTED_VALUE(expectedValue, testValue);
+			}
 
-				{
-					Threading::ThreadPoolWin<ExecutionTest::Object&, long&> threadpool(&ExecutionTest::Object::ConstMember);
-					threadpool.Push(std::ref(testObject), std::ref(testValue));
+			Logger::WriteMessage("ThreadPoolWin32->Execution_Multiple: Member Function Zero-Arg Passed\n");
+
+			{
+				for (long i = 0; i < REPETITION_NUMBER; ++i) {
+					threadpool.Push(&ExecutionTest::Object::ConstMember, &testObject, std::ref(testValue));
 					expectedObject.ConstMember(expectedValue);
-					threadpool.Wait();
-					ASSERT_EXPECTED_STORE(expectedObject, testObject);
-					ASSERT_EXPECTED_VALUE;
 				}
+				threadpool.Wait();
+				ASSERT_EXPECTED_VALUE(expectedObject.store, testObject.store);
+				ASSERT_EXPECTED_VALUE(expectedValue, testValue);
 			}
 
-			{
-				Threading::ThreadPoolWin<long&> threadpool(&ExecutionTest::Object::OverLoadStatic);
-				threadpool.Push(testValue);
+			Logger::WriteMessage("ThreadPoolWin32->Execution_Multiple: Const Member Function Passed\n");
+		}
+
+		{
+			for (long i = 0; i < REPETITION_NUMBER; ++i) {
+				threadpool.Push((void(*)(long&))ExecutionTest::Object::OverLoadStatic, testValue);
 				ExecutionTest::Object::OverLoadStatic(expectedValue);
-				threadpool.Wait();
-				ASSERT_EXPECTED_VALUE;
 			}
+			threadpool.Wait();
+			ASSERT_EXPECTED_VALUE(expectedValue, testValue);
+		}
 
-			{
-				Threading::ThreadPoolWin<long&, long> threadpool(&ExecutionTest::Object::OverLoadStatic);
-				threadpool.Push(testValue, incrementValue);
+		Logger::WriteMessage("ThreadPoolWin32->Execution_Multiple: OverLoad Static Function Stage-One Passed\n");
+
+		{
+			for (long i = 0; i < REPETITION_NUMBER; ++i) {
+				threadpool.Push((void(*)(long&, long))ExecutionTest::Object::OverLoadStatic, testValue, incrementValue);
 				ExecutionTest::Object::OverLoadStatic(expectedValue, incrementValue);
-				threadpool.Wait();
-				ASSERT_EXPECTED_VALUE;
 			}
+			threadpool.Wait();
+			ASSERT_EXPECTED_VALUE(expectedValue, testValue);
+		}
 
-			{
-				ExecutionTest::Callable expectedCallable;
-				ExecutionTest::Callable testCallable;
-				ASSERT_EXPECTED_STORE(expectedCallable, testCallable);
+		Logger::WriteMessage("ThreadPoolWin32->Execution_Multiple: OverLoad Static Function Stage-Two Passed\n");
 
-				Threading::ThreadPoolWin<long> setter(std::ref(testCallable));
-				setter.Push(testValue);
-				setter.Wait();
+		{
+			ExecutionTest::Callable expectedCallable;
+			ExecutionTest::Callable testCallable;
+			ASSERT_EXPECTED_VALUE(expectedCallable.store, testCallable.store);
+			Logger::WriteMessage("ThreadPoolWin32->Execution_Multiple: Callable Object Stage-One Passed\n");
+
+			for (long i = 0; i < REPETITION_NUMBER; ++i) {
+				threadpool.Push(testCallable, testValue);
 				expectedCallable(expectedValue);
-				ASSERT_EXPECTED_STORE(expectedCallable, testCallable);
-				ASSERT_EXPECTED_VALUE;
+				threadpool.Wait();
+			}
+			ASSERT_EXPECTED_VALUE(expectedCallable.store, testCallable.store);
+			ASSERT_EXPECTED_VALUE(expectedValue, testValue);
 
-				Threading::ThreadPoolWin<> increment(std::ref(testCallable));
-				increment.Push();
-				increment.Wait();
+			Logger::WriteMessage("ThreadPoolWin32->Execution_Multiple: Callable Object Stage-Two Passed\n");
+
+			for (long i = 0; i < REPETITION_NUMBER; ++i) {
+				threadpool.Push(testCallable);
 				expectedCallable();
-				ASSERT_EXPECTED_STORE(expectedCallable, testCallable);
-				ASSERT_EXPECTED_VALUE;
-
-				Threading::ThreadPoolWin<long*> getter(std::ref(testCallable));
-				getter.Push(&testValue);
-				getter.Wait();
-				expectedCallable(&expectedValue);
-				ASSERT_EXPECTED_STORE(expectedCallable, testCallable);
-				ASSERT_EXPECTED_VALUE;
 			}
+			threadpool.Wait();
+			ASSERT_EXPECTED_VALUE(expectedCallable.store, testCallable.store);
+			ASSERT_EXPECTED_VALUE(expectedValue, testValue);
+
+			Logger::WriteMessage("ThreadPoolWin32->Execution_Multiple: Callable Object Stage-Three Passed\n");
+
+			for (long i = 0; i < REPETITION_NUMBER; ++i) {
+				threadpool.Push(testCallable, std::ref(testValue));
+				expectedCallable(&expectedValue);
+			}
+			threadpool.Wait();
+			ASSERT_EXPECTED_VALUE(expectedCallable.store, testCallable.store);
+			ASSERT_EXPECTED_VALUE(expectedValue, testValue);
+
+			Logger::WriteMessage("ThreadPoolWin32->Execution_Multiple: Callable Object Stage-Four Passed\n");
 		}
 
-		TEST_METHOD(ThreadPoolWin_Execution_Multiple) {
-			long expectedValue = 0;
-			long testValue = 0;
-			std::uniform_int_distribution<long> uid(25, 250);
-			std::default_random_engine randomEngine;
-			long incrementValue = uid(randomEngine);
-			incrementValue = uid(randomEngine);
-			const long REPETITION_NUMBER = uid(randomEngine);
-			// Sanity check
-			ASSERT_EXPECTED_VALUE;
+		Logger::WriteMessage("ThreadPoolWin32->Execution_Multiple: Callable Object Passed\n");
 
-			{
-				Threading::ThreadPoolWin threadpool(ExecutionTest::Function);
-				for (long i = 0; i < REPETITION_NUMBER; ++i) {
-					threadpool.Push(std::ref(testValue));
-					ExecutionTest::Function(expectedValue);
-				}
-				threadpool.Wait();
-				ASSERT_EXPECTED_VALUE;
-			}
-
-			{
-				Threading::ThreadPoolWin<long&> threadpool(ExecutionTest::OverloadFunction);
-				Threading::ThreadPoolWin<long&, long> overloadThreadPool(ExecutionTest::OverloadFunction);
-				for (long i = 0; i < REPETITION_NUMBER; ++i) {
-					threadpool.Push(std::ref(testValue));
-					overloadThreadPool.Push(std::ref(testValue), incrementValue);
-					ExecutionTest::OverloadFunction(expectedValue);
-					ExecutionTest::OverloadFunction(expectedValue, incrementValue);
-				}
-				threadpool.Wait();
-				overloadThreadPool.Wait();
-				ASSERT_EXPECTED_VALUE;
-			}
-
-			{
-				Threading::ThreadPoolWin threadpool(ExecutionTest::Object::Static);
-				for (long i = 0; i < REPETITION_NUMBER; ++i) {
-					threadpool.Push(std::ref(testValue));
-					ExecutionTest::Object::Static(expectedValue);
-				}
-				threadpool.Wait();
-				ASSERT_EXPECTED_VALUE;
-			}
-
-			{
-				ExecutionTest::Object testObject;
-				ExecutionTest::Object expectedObject;
-				ASSERT_EXPECTED_STORE(expectedObject, testObject);
-				ASSERT_EXPECTED_VALUE;
-
-				{
-					Threading::ThreadPoolWin<long> threadpool(&ExecutionTest::Object::Member, &testObject);
-					for (long i = 0; i < REPETITION_NUMBER; ++i) {
-						threadpool.Push(testValue);
-						expectedObject.Member(expectedValue);
-					}
-					threadpool.Wait();
-					ASSERT_EXPECTED_STORE(expectedObject, testObject);
-					ASSERT_EXPECTED_VALUE;
-				}
-
-				{
-					Threading::ThreadPoolWin<> threadpool(&ExecutionTest::Object::Member, &testObject);
-					for (long i = 0; i < REPETITION_NUMBER; ++i) {
-						threadpool.Push();
-						expectedObject.Member();
-					}
-					threadpool.Wait();
-					ASSERT_EXPECTED_STORE(expectedObject, testObject);
-					ASSERT_EXPECTED_VALUE;
-				}
-
-				{
-					Threading::ThreadPoolWin<ExecutionTest::Object&, long&> threadpool(&ExecutionTest::Object::ConstMember);
-					for (long i = 0; i < REPETITION_NUMBER; ++i) {
-						threadpool.Push(std::ref(testObject), std::ref(testValue));
-						expectedObject.ConstMember(expectedValue);
-					}
-					threadpool.Wait();
-					ASSERT_EXPECTED_STORE(expectedObject, testObject);
-					ASSERT_EXPECTED_VALUE;
-				}
-			}
-
-			{
-				Threading::ThreadPoolWin<long&> threadpool(&ExecutionTest::Object::OverLoadStatic);
-				for (long i = 0; i < REPETITION_NUMBER; ++i) {
-					threadpool.Push(testValue);
-					ExecutionTest::Object::OverLoadStatic(expectedValue);
-				}
-				threadpool.Wait();
-				ASSERT_EXPECTED_VALUE;
-			}
-
-			{
-				Threading::ThreadPoolWin<long&, long> threadpool(&ExecutionTest::Object::OverLoadStatic);
-				for (long i = 0; i < REPETITION_NUMBER; ++i) {
-					threadpool.Push(testValue, incrementValue);
-					ExecutionTest::Object::OverLoadStatic(expectedValue, incrementValue);
-				}
-				threadpool.Wait();
-				ASSERT_EXPECTED_VALUE;
-			}
-
-			{
-				ExecutionTest::Callable expectedCallable;
-				ExecutionTest::Callable testCallable;
-				ASSERT_EXPECTED_STORE(expectedCallable, testCallable);
-
-				Threading::ThreadPoolWin<long> setter(std::ref(testCallable));
-				Threading::ThreadPoolWin<> increment(std::ref(testCallable));
-				Threading::ThreadPoolWin<long*> getter(std::ref(testCallable));
-
-				setter.Push(testValue);
-				expectedCallable(expectedValue);
-				setter.Wait();
-				ASSERT_EXPECTED_STORE(expectedCallable, testCallable);
-				ASSERT_EXPECTED_VALUE;
-
-				for (long i = 0; i < REPETITION_NUMBER; ++i) {
-					increment.Push();
-					expectedCallable();
-				}
-				increment.Wait();
-				ASSERT_EXPECTED_STORE(expectedCallable, testCallable);
-				ASSERT_EXPECTED_VALUE;
-
-				getter.Push(&testValue);
-				expectedCallable(&expectedValue);
-				getter.Wait();
-				ASSERT_EXPECTED_STORE(expectedCallable, testCallable);
-				ASSERT_EXPECTED_VALUE;
-			}
-		}
+		Logger::WriteMessage("ThreadPoolWin32->Execution_Multiple: End\n");
+	}
 #undef ASSERT_EXPECTED_VALUE
 #undef ASSERT_EXPECTED_STORE
 	};
