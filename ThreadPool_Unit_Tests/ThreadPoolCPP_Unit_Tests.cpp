@@ -11,12 +11,14 @@ namespace ThreadPoolUnitTests {
 	public:
 		TEST_METHOD(ThreadPoolCPP_Constructor) {
 			Threading::ThreadPoolCPP threadpool;
+			Logger::WriteMessage("ThreadPoolCPP->Constructor Passed.\n");
 		}
 
 #define ASSERT_EXPECTED_VALUE Assert::AreEqual(expectedValue, testValue)
 #define ASSERT_EXPECTED_STORE(expected, test) Assert::AreEqual(expected.store, test.store)
 
 		TEST_METHOD(ThreadPoolCPP_Execution_Single) {
+			Logger::WriteMessage("ThreadPoolCPP->Execution_Single: Start\n");
 			Threading::ThreadPoolCPP threadpool;
 			long expectedValue = 0;
 			long testValue = 0;
@@ -30,6 +32,7 @@ namespace ThreadPoolUnitTests {
 				threadpool.Wait();
 				ASSERT_EXPECTED_VALUE;
 			}
+			Logger::WriteMessage("ThreadPoolCPP->Execution_Single: Static Function Passed.\n");
 
 			{
 				threadpool.Push((void(*)(long&))ExecutionTest::OverloadFunction, std::ref(testValue));
@@ -40,6 +43,8 @@ namespace ThreadPoolUnitTests {
 				ASSERT_EXPECTED_VALUE;
 			}
 			
+			Logger::WriteMessage("ThreadPoolCPP->Execution_Single: Static Overload Function Passed.\n");
+
 			{
 				threadpool.Push(ExecutionTest::Object::Static, std::ref(testValue));
 				ExecutionTest::Object::Static(expectedValue);
@@ -47,12 +52,14 @@ namespace ThreadPoolUnitTests {
 				ASSERT_EXPECTED_VALUE;
 			}
 			
+			Logger::WriteMessage("ThreadPoolCPP->Execution_Single: Class Static Member Function Passed.\n");
+
 			{
 				ExecutionTest::Object testObject;
 				ExecutionTest::Object expectedObject;
 				ASSERT_EXPECTED_STORE(expectedObject, testObject);
 				ASSERT_EXPECTED_VALUE;
-			
+
 				{
 					threadpool.Push((void(ExecutionTest::Object::*)(long))&ExecutionTest::Object::Member, &testObject, testValue);
 					expectedObject.Member(expectedValue);
@@ -60,7 +67,9 @@ namespace ThreadPoolUnitTests {
 					ASSERT_EXPECTED_STORE(expectedObject, testObject);
 					ASSERT_EXPECTED_VALUE;
 				}
-			
+				
+				Logger::WriteMessage("ThreadPoolCPP->Execution_Single: Member Function One-Arg Passed.\n");
+
 				{
 					threadpool.Push((void(ExecutionTest::Object::*)())&ExecutionTest::Object::Member, &testObject);
 					expectedObject.Member();
@@ -69,6 +78,8 @@ namespace ThreadPoolUnitTests {
 					ASSERT_EXPECTED_VALUE;
 				}
 			
+				Logger::WriteMessage("ThreadPoolCPP->Execution_Single: Member Function Zero-Arg Passed.\n");
+
 				{
 					threadpool.Push(&ExecutionTest::Object::ConstMember, testObject, std::ref(testValue));
 					expectedObject.ConstMember(expectedValue);
@@ -76,7 +87,10 @@ namespace ThreadPoolUnitTests {
 					ASSERT_EXPECTED_STORE(expectedObject, testObject);
 					ASSERT_EXPECTED_VALUE;
 				}
+				
+				Logger::WriteMessage("ThreadPoolCPP->Execution_Single: Const-Member Function Passed.\n");
 			}
+			
 			
 			{
 				threadpool.Push((void(*)(long&))ExecutionTest::Object::OverLoadStatic, std::ref(testValue));
@@ -85,39 +99,52 @@ namespace ThreadPoolUnitTests {
 				ASSERT_EXPECTED_VALUE;
 			}
 			
+			Logger::WriteMessage("ThreadPoolCPP->Execution_Single: Class Static OverLoad Function Stage-One Passed.\n");
+			
 			{
 				threadpool.Push((void(*)(long&, long))ExecutionTest::Object::OverLoadStatic, std::ref(testValue), incrementValue);
 				ExecutionTest::Object::OverLoadStatic(expectedValue, incrementValue);
 				threadpool.Wait();
 				ASSERT_EXPECTED_VALUE;
 			}
+
+			Logger::WriteMessage("ThreadPoolCPP->Execution_Single: Class Static OverLoad Function Stage-Two Passed\n");
 			
 			{
 				ExecutionTest::Callable expectedCallable;
 				ExecutionTest::Callable testCallable;
 				ASSERT_EXPECTED_STORE(expectedCallable, testCallable);
-			
+				Logger::WriteMessage("ThreadPoolCPP->Execution_Single: Callable Object Stage-One Passed.\n");
+
 				threadpool.Push(std::ref(testCallable), testValue);
 				threadpool.Wait();
 				expectedCallable(expectedValue);
 				ASSERT_EXPECTED_STORE(expectedCallable, testCallable);
 				ASSERT_EXPECTED_VALUE;
-				
+				Logger::WriteMessage("ThreadPoolCPP->Execution_Single: Callable Object Stage-Two Passed.\n");
+
 				threadpool.Push(std::ref(testCallable));
 				threadpool.Wait();
 				expectedCallable();
 				ASSERT_EXPECTED_STORE(expectedCallable, testCallable);
 				ASSERT_EXPECTED_VALUE;
-				
+				Logger::WriteMessage("ThreadPoolCPP->Execution_Single: Callable Object Stage-Three Passed.\n");
+
 				threadpool.Push(std::ref(testCallable), &testValue);
 				threadpool.Wait();
 				expectedCallable(&expectedValue);
 				ASSERT_EXPECTED_STORE(expectedCallable, testCallable);
 				ASSERT_EXPECTED_VALUE;
+				Logger::WriteMessage("ThreadPoolCPP->Execution_Single: Callable Object Stage-Four Passed.\n");
 			}
+			
+			Logger::WriteMessage("ThreadPoolCPP->Execution_Single: Callable Object Passed.\n");
+
+			Logger::WriteMessage("ThreadPoolCPP->Execution_Single: End\n");
 		}
 
 		TEST_METHOD(ThreadPoolCPP_Execution_Multiple) {
+			Logger::WriteMessage("ThreadPoolCPP->Execution_Multiple: Start\n");
 			long expectedValue = 0;
 			long testValue = 0;
 			std::uniform_int_distribution<long> uid(25, 250);
@@ -137,6 +164,8 @@ namespace ThreadPoolUnitTests {
 				threadpool.Wait();
 				ASSERT_EXPECTED_VALUE;
 			}
+			
+			Logger::WriteMessage("ThreadPoolCPP->Execution_Multiple: Static Function Passed\n");
 
 			{
 				for (long i = 0; i < REPETITION_NUMBER; ++i) {
@@ -148,6 +177,8 @@ namespace ThreadPoolUnitTests {
 				threadpool.Wait();
 				ASSERT_EXPECTED_VALUE;
 			}
+			
+			Logger::WriteMessage("ThreadPoolCPP->Execution_Multiple: Static Overload Function Passed\n");
 
 			{
 				for (long i = 0; i < REPETITION_NUMBER; ++i) {
@@ -157,6 +188,8 @@ namespace ThreadPoolUnitTests {
 				threadpool.Wait();
 				ASSERT_EXPECTED_VALUE;
 			}
+			
+			Logger::WriteMessage("ThreadPoolCPP->Execution_Multiple: Static Member Function Passed\n");
 
 			{
 				ExecutionTest::Object testObject;
@@ -174,6 +207,8 @@ namespace ThreadPoolUnitTests {
 					ASSERT_EXPECTED_VALUE;
 				}
 			
+				Logger::WriteMessage("ThreadPoolCPP->Execution_Multiple: Member Function One-Arg Passed\n");
+			
 				{
 					for (long i = 0; i < REPETITION_NUMBER; ++i) {
 						threadpool.Push<void(ExecutionTest::Object::*)()>(&ExecutionTest::Object::Member, &testObject);
@@ -184,6 +219,8 @@ namespace ThreadPoolUnitTests {
 					ASSERT_EXPECTED_VALUE;
 				}
 			
+				Logger::WriteMessage("ThreadPoolCPP->Execution_Multiple: Member Function Zero-Arg Passed\n");
+
 				{
 					for (long i = 0; i < REPETITION_NUMBER; ++i) {
 						threadpool.Push(&ExecutionTest::Object::ConstMember, &testObject, std::ref(testValue));
@@ -193,6 +230,8 @@ namespace ThreadPoolUnitTests {
 					ASSERT_EXPECTED_STORE(expectedObject, testObject);
 					ASSERT_EXPECTED_VALUE;
 				}
+
+				Logger::WriteMessage("ThreadPoolCPP->Execution_Multiple: Const Member Function Passed\n");
 			}
 			
 			{
@@ -204,6 +243,8 @@ namespace ThreadPoolUnitTests {
 				ASSERT_EXPECTED_VALUE;
 			}
 			
+			Logger::WriteMessage("ThreadPoolCPP->Execution_Multiple: OverLoad Static Function Stage-One Passed\n");
+			
 			{
 				for (long i = 0; i < REPETITION_NUMBER; ++i) {
 					threadpool.Push((void(*)(long&, long))ExecutionTest::Object::OverLoadStatic, testValue, incrementValue);
@@ -213,17 +254,24 @@ namespace ThreadPoolUnitTests {
 				ASSERT_EXPECTED_VALUE;
 			}
 			
+			Logger::WriteMessage("ThreadPoolCPP->Execution_Multiple: OverLoad Static Function Stage-Two Passed\n");
+
 			{
 				ExecutionTest::Callable expectedCallable;
 				ExecutionTest::Callable testCallable;
 				ASSERT_EXPECTED_STORE(expectedCallable, testCallable);
-			
-				threadpool.Push(testCallable, testValue);
-				expectedCallable(expectedValue);
-				threadpool.Wait();
+				Logger::WriteMessage("ThreadPoolCPP->Execution_Multiple: Callable Object Stage-One Passed\n");
+
+				for (long i = 0; i < REPETITION_NUMBER; ++i) {
+					threadpool.Push(testCallable, testValue);
+					expectedCallable(expectedValue);
+					threadpool.Wait();
+				}
 				ASSERT_EXPECTED_STORE(expectedCallable, testCallable);
 				ASSERT_EXPECTED_VALUE;
-			
+
+				Logger::WriteMessage("ThreadPoolCPP->Execution_Multiple: Callable Object Stage-Two Passed\n");
+
 				for (long i = 0; i < REPETITION_NUMBER; ++i) {
 					threadpool.Push(testCallable);
 					expectedCallable();
@@ -231,13 +279,23 @@ namespace ThreadPoolUnitTests {
 				threadpool.Wait();
 				ASSERT_EXPECTED_STORE(expectedCallable, testCallable);
 				ASSERT_EXPECTED_VALUE;
-			
-				threadpool.Push(testCallable, std::ref(testValue));
-				expectedCallable(&expectedValue);
+
+				Logger::WriteMessage("ThreadPoolCPP->Execution_Multiple: Callable Object Stage-Three Passed\n");
+
+				for (long i = 0; i < REPETITION_NUMBER; ++i) {
+					threadpool.Push(testCallable, std::ref(testValue));
+					expectedCallable(&expectedValue);
+				}
 				threadpool.Wait();
 				ASSERT_EXPECTED_STORE(expectedCallable, testCallable);
 				ASSERT_EXPECTED_VALUE;
+			
+				Logger::WriteMessage("ThreadPoolCPP->Execution_Multiple: Callable Object Stage-Four Passed\n");
 			}
+
+			Logger::WriteMessage("ThreadPoolCPP->Execution_Multiple: Callable Object Passed\n");
+
+			Logger::WriteMessage("ThreadPoolCPP->Execution_Multiple: End\n");
 		}
 #undef ASSERT_EXPECTED_VALUE
 #undef ASSERT_EXPECTED_STORE
