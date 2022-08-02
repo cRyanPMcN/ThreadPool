@@ -15,7 +15,6 @@ namespace ThreadPoolUnitTests {
 		}
 
 #define ASSERT_EXPECTED_VALUE(expected, test) Assert::AreEqual(expected, test)
-#define ASSERT_EXPECTED_STORE(expected, test) Assert::AreEqual(expected.store, test.store)
 
 		TEST_METHOD(ThreadPoolCPP_Execution_Single) {
 			Logger::WriteMessage("ThreadPoolCPP->Execution_Single: Start\n");
@@ -57,14 +56,14 @@ namespace ThreadPoolUnitTests {
 			{
 				ExecutionTest::Object testObject;
 				ExecutionTest::Object expectedObject;
-				ASSERT_EXPECTED_STORE(expectedObject, testObject);
+				ASSERT_EXPECTED_VALUE(expectedObject.store, testObject.store);
 				ASSERT_EXPECTED_VALUE(expectedValue, testValue);
 
 				{
 					threadpool.Push((void(ExecutionTest::Object::*)(long))&ExecutionTest::Object::Member, &testObject, testValue);
 					expectedObject.Member(expectedValue);
 					threadpool.Wait();
-					ASSERT_EXPECTED_STORE(expectedObject, testObject);
+					ASSERT_EXPECTED_VALUE(expectedObject.store, testObject.store);
 					ASSERT_EXPECTED_VALUE(expectedValue, testValue);
 				}
 				
@@ -74,7 +73,7 @@ namespace ThreadPoolUnitTests {
 					threadpool.Push((void(ExecutionTest::Object::*)())&ExecutionTest::Object::Member, &testObject);
 					expectedObject.Member();
 					threadpool.Wait();
-					ASSERT_EXPECTED_STORE(expectedObject, testObject);
+					ASSERT_EXPECTED_VALUE(expectedObject.store, testObject.store);
 					ASSERT_EXPECTED_VALUE(expectedValue, testValue);
 				}
 			
@@ -84,7 +83,7 @@ namespace ThreadPoolUnitTests {
 					threadpool.Push(&ExecutionTest::Object::ConstMember, testObject, std::ref(testValue));
 					expectedObject.ConstMember(expectedValue);
 					threadpool.Wait();
-					ASSERT_EXPECTED_STORE(expectedObject, testObject);
+					ASSERT_EXPECTED_VALUE(expectedObject.store, testObject.store);
 					ASSERT_EXPECTED_VALUE(expectedValue, testValue);
 				}
 				
@@ -113,27 +112,27 @@ namespace ThreadPoolUnitTests {
 			{
 				ExecutionTest::Callable expectedCallable;
 				ExecutionTest::Callable testCallable;
-				ASSERT_EXPECTED_STORE(expectedCallable, testCallable);
+				ASSERT_EXPECTED_VALUE(expectedCallable.store, testCallable.store);
 				Logger::WriteMessage("ThreadPoolCPP->Execution_Single: Callable Object Stage-One Passed.\n");
 
 				threadpool.Push(std::ref(testCallable), testValue);
 				threadpool.Wait();
 				expectedCallable(expectedValue);
-				ASSERT_EXPECTED_STORE(expectedCallable, testCallable);
+				ASSERT_EXPECTED_VALUE(expectedCallable.store, testCallable.store);
 				ASSERT_EXPECTED_VALUE(expectedValue, testValue);
 				Logger::WriteMessage("ThreadPoolCPP->Execution_Single: Callable Object Stage-Two Passed.\n");
 
 				threadpool.Push(std::ref(testCallable));
 				threadpool.Wait();
 				expectedCallable();
-				ASSERT_EXPECTED_STORE(expectedCallable, testCallable);
+				ASSERT_EXPECTED_VALUE(expectedCallable.store, testCallable.store);
 				ASSERT_EXPECTED_VALUE(expectedValue, testValue);
 				Logger::WriteMessage("ThreadPoolCPP->Execution_Single: Callable Object Stage-Three Passed.\n");
 
 				threadpool.Push(std::ref(testCallable), &testValue);
 				threadpool.Wait();
 				expectedCallable(&expectedValue);
-				ASSERT_EXPECTED_STORE(expectedCallable, testCallable);
+				ASSERT_EXPECTED_VALUE(expectedCallable.store, testCallable.store);
 				ASSERT_EXPECTED_VALUE(expectedValue, testValue);
 				Logger::WriteMessage("ThreadPoolCPP->Execution_Single: Callable Object Stage-Four Passed.\n");
 			}
@@ -194,7 +193,7 @@ namespace ThreadPoolUnitTests {
 			{
 				ExecutionTest::Object testObject;
 				ExecutionTest::Object expectedObject;
-				ASSERT_EXPECTED_STORE(expectedObject, testObject);
+				ASSERT_EXPECTED_VALUE(expectedObject.store, testObject.store);
 				ASSERT_EXPECTED_VALUE(expectedValue, testValue);
 			
 				{
@@ -203,7 +202,7 @@ namespace ThreadPoolUnitTests {
 						expectedObject.Member(expectedValue);
 					}
 					threadpool.Wait();
-					ASSERT_EXPECTED_STORE(expectedObject, testObject);
+					ASSERT_EXPECTED_VALUE(expectedObject.store, testObject.store);
 					ASSERT_EXPECTED_VALUE(expectedValue, testValue);
 				}
 			
@@ -215,7 +214,7 @@ namespace ThreadPoolUnitTests {
 						expectedObject.Member();
 					}
 					threadpool.Wait();
-					ASSERT_EXPECTED_STORE(expectedObject, testObject);
+					ASSERT_EXPECTED_VALUE(expectedObject.store, testObject.store);
 					ASSERT_EXPECTED_VALUE(expectedValue, testValue);
 				}
 			
@@ -227,7 +226,7 @@ namespace ThreadPoolUnitTests {
 						expectedObject.ConstMember(expectedValue);
 					}
 					threadpool.Wait();
-					ASSERT_EXPECTED_STORE(expectedObject, testObject);
+					ASSERT_EXPECTED_VALUE(expectedObject.store, testObject.store);
 					ASSERT_EXPECTED_VALUE(expectedValue, testValue);
 				}
 
@@ -259,7 +258,7 @@ namespace ThreadPoolUnitTests {
 			{
 				ExecutionTest::Callable expectedCallable;
 				ExecutionTest::Callable testCallable;
-				ASSERT_EXPECTED_STORE(expectedCallable, testCallable);
+				ASSERT_EXPECTED_VALUE(expectedCallable.store, testCallable.store);
 				Logger::WriteMessage("ThreadPoolCPP->Execution_Multiple: Callable Object Stage-One Passed\n");
 
 				for (long i = 0; i < REPETITION_NUMBER; ++i) {
@@ -267,7 +266,7 @@ namespace ThreadPoolUnitTests {
 					expectedCallable(expectedValue);
 					threadpool.Wait();
 				}
-				ASSERT_EXPECTED_STORE(expectedCallable, testCallable);
+				ASSERT_EXPECTED_VALUE(expectedCallable.store, testCallable.store);
 				ASSERT_EXPECTED_VALUE(expectedValue, testValue);
 
 				Logger::WriteMessage("ThreadPoolCPP->Execution_Multiple: Callable Object Stage-Two Passed\n");
@@ -277,7 +276,7 @@ namespace ThreadPoolUnitTests {
 					expectedCallable();
 				}
 				threadpool.Wait();
-				ASSERT_EXPECTED_STORE(expectedCallable, testCallable);
+				ASSERT_EXPECTED_VALUE(expectedCallable.store, testCallable.store);
 				ASSERT_EXPECTED_VALUE(expectedValue, testValue);
 
 				Logger::WriteMessage("ThreadPoolCPP->Execution_Multiple: Callable Object Stage-Three Passed\n");
@@ -287,7 +286,7 @@ namespace ThreadPoolUnitTests {
 					expectedCallable(&expectedValue);
 				}
 				threadpool.Wait();
-				ASSERT_EXPECTED_STORE(expectedCallable, testCallable);
+				ASSERT_EXPECTED_VALUE(expectedCallable.store, testCallable.store);
 				ASSERT_EXPECTED_VALUE(expectedValue, testValue);
 			
 				Logger::WriteMessage("ThreadPoolCPP->Execution_Multiple: Callable Object Stage-Four Passed\n");
