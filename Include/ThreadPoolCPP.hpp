@@ -6,7 +6,6 @@
 #include <thread>
 #include <tuple>
 #include <mutex>
-#include <functional>
 
 namespace Threading {
 
@@ -130,7 +129,7 @@ namespace Threading {
 					_works.pop();
 					lock.unlock();
 
-					base_type::_Execute(functor, work, std::make_index_sequence<sizeof...(_ArgsTy)>());
+					base_type::_Execute(functor, work);
 				}
 			}
 		}
@@ -157,7 +156,7 @@ namespace Threading {
 					_works.pop();
 					lock.unlock();
 
-					_Execute(functor, obj, work, std::make_index_sequence<sizeof...(_ArgsTy)>());
+					_Execute(functor, obj, work);
 				}
 			}
 		}
