@@ -4,10 +4,6 @@
 #include <queue>
 
 namespace Threading {
-	struct WatcherWorkBase {
-		virtual void PushWork() = 0;
-	};
-
 	template <typename..._ArgsTy>
 	class ThreadPoolBase {
 	public:
