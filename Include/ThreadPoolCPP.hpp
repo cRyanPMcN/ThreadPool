@@ -19,10 +19,13 @@ namespace Threading {
 
 		using lock_type = std::unique_lock<std::mutex>;
 
-		using work_type = typename base_type::work_type;
-		using work_container = typename base_type::work_container;
+		using work_type = std::tuple<_ArgsTy...>;
+		using work_container = std::queue<work_type>;
 	protected:
+		Config _config;
 		work_container _works;
+		bool _run;
+		bool _pause;
 		std::mutex _workMutex;
 		std::mutex _sleepMutex;
 		std::condition_variable _conditionVariable;
@@ -72,29 +75,41 @@ namespace Threading {
 			}
 		}
 
-		using base_type::Push;
+		virtual void Push(_ArgsTy...args) {
+			Push(std::forward_as_tuple(args...));
+		}
 
-		virtual void Push(work_type const& work) override {
+		template <class _Iter>
+		void Push(_Iter begin, _Iter end) {
+			while (begin != end) {
+				lock_type lock(_workMutex);
+				Push(*begin);
+				++begin;
+				WakeAll();
+			}
+		}
+
+		void Push(work_type const& work) {
 			lock_type lock(_workMutex);
 			_works.push(work);
 			WakeOne();
 		}
 
-		virtual void Push(work_type const&& work) override {
+		void Push(work_type const&& work) {
 			lock_type lock(_workMutex);
 			_works.push(work);
 			WakeOne();
 		}
 
-		virtual void WakeOne() override {
+		void WakeOne() {
 			_conditionVariable.notify_one();
 		}
 
-		virtual void WakeAll() override {
+		void WakeAll() {
 			_conditionVariable.notify_all();
 		}
 
-		virtual void Wait() override {
+		void Wait() {
 			// Wait until all threads are waiting
 			while (_waitingThreads < _threads.size() || !(_works.empty() || _pause)) {
 				std::this_thread::yield();
@@ -103,7 +118,7 @@ namespace Threading {
 			lock_type lock(_sleepMutex);
 		}
 
-		virtual std::size_t Size() override {
+		std::size_t Size() {
 			return _threads.size();
 		}
 

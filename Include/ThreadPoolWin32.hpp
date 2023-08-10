@@ -50,7 +50,9 @@ namespace Threading {
 
 			void Unlock() {
 				_section.Leave();
-				_InterlockedDecrement(&_spinCount);
+				if (_spinCount > 0) {
+					_InterlockedDecrement(&_spinCount);
+				}
 			}
 		};
 	}
@@ -91,13 +93,16 @@ namespace Threading {
 		using work_type = typename base_type::work_type;
 		using work_container = typename base_type::work_container;
 	protected:
+		Config _config;
+		bool _run;
+		bool _pause;
 		work_container _works;
 		CONDITION_VARIABLE _conditionVariable CONDITION_VARIABLE_INIT;
 		DetailWin::CriticalSection _workSection;
 		DetailWin::CriticalSection _sleepSection;
 		thread_container _threads;
 		unsigned long long _waitingThreads;
-		// Required, gets cast to the correct type inside thread function
+		// Win32 Threading api takes a void pointer
 		void* _threadData;
 		ThreadPoolWin32(Config config) : _waitingThreads(0), base_type(config) {
 			InitializeConditionVariable(&_conditionVariable);
@@ -160,27 +165,27 @@ namespace Threading {
 
 		using base_type::Push;
 
-		virtual void Push(work_type const& work) override {
+		void Push(work_type const& work) {
 			lock_type lock(_workSection);
 			_works.push(work);
 			WakeOne();
 		}
 
-		virtual void Push(work_type const&& work) override {
+		void Push(work_type const&& work) {
 			lock_type lock(_workSection);
 			_works.push(work);
 			WakeOne();
 		}
 
-		virtual void WakeOne() override {
+		void WakeOne() {
 			WakeConditionVariable(&_conditionVariable);
 		}
 
-		virtual void WakeAll() override {
+		void WakeAll() {
 			WakeAllConditionVariable(&_conditionVariable);
 		}
 
-		virtual void Wait() override {
+		void Wait() {
 			// Wait until all threads are waiting
 			while (_waitingThreads < _threads.size() || !(_works.empty() || _pause)) {
 				sleep(0);
@@ -188,7 +193,7 @@ namespace Threading {
 			lock_type lock(_sleepSection);
 		}
 
-		virtual std::size_t Size() override {
+		std::size_t Size() {
 			return _threads.size();
 		}
 
@@ -197,6 +202,7 @@ namespace Threading {
 			ThreadData<_FuncTy>* data = (ThreadData<_FuncTy>*)threadData;
 			ThreadPoolWin32& threadpool = data->threadpool;
 			work_container& works = threadpool._works;
+			_FuncTy functor = data->functor;
 
 			while (threadpool._run) {
 				// Sleep thread
@@ -218,7 +224,7 @@ namespace Threading {
 					works.pop();
 					lock.Unlock();
 
-					_Execute(data->functor, work);
+					_Execute(functor, work);
 				}
 			}
 			
@@ -231,6 +237,7 @@ namespace Threading {
 			ThreadPoolWin32& threadpool = data->threadpool;
 			work_container& works = threadpool._works;
 			_ObjTy* obj = data->object;
+			_FuncTy functor = data->functor;
 
 			while (threadpool._run) {
 				// Sleep thread
@@ -252,7 +259,7 @@ namespace Threading {
 					works.pop();
 					lock.Unlock();
 
-					_Execute(data->functor, obj, work);
+					_Execute(functor, obj, work);
 				}
 			}
 
