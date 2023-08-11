@@ -62,7 +62,7 @@ namespace Threading {
 	class ThreadPoolWin32 : public ThreadPoolBase<_ArgsTy...> {
 	public:
 		using base_type = ThreadPoolBase<_ArgsTy...>;
-		using Config = typename base_type::Config;
+		using Config = typename Config;
 		using thread_type = struct _thrd {
 			HANDLE handle;
 			DWORD id;
@@ -104,15 +104,14 @@ namespace Threading {
 		unsigned long long _waitingThreads;
 		// Win32 Threading api takes a void pointer
 		void* _threadData;
-		ThreadPoolWin32(Config config) : _waitingThreads(0), base_type(config) {
-			InitializeConditionVariable(&_conditionVariable);
+		ThreadPoolWin32(Config config) : _waitingThreads(0), _config(config) {
 			InitializeConditionVariable(&_conditionVariable);
 		}
 	public:
 		template <typename _FuncTy>
 		ThreadPoolWin32(_FuncTy functor, Config config = Config()) : ThreadPoolWin32(config) {
 			_threadData = new ThreadData<_FuncTy>(*this, functor);
-			for (decltype(base_type::_config.startingThreads) i = 0; i < base_type::_config.startingThreads; ++i) {
+			for (decltype(_config.startingThreads) i = 0; i < _config.startingThreads; ++i) {
 				thread_type newThread;
 				newThread.handle = CreateThread(NULL, 0, &ThreadPoolWin32::FunctionWrapper<_FuncTy>, _threadData, NULL, &newThread.id);
 				_threads.push_back(newThread);
@@ -123,7 +122,7 @@ namespace Threading {
 		template <typename _RetTy>
 		ThreadPoolWin32(_RetTy(*functor)(_ArgsTy...), Config config = Config()) : ThreadPoolWin32(config) {
 			_threadData = new ThreadData<decltype(functor)>(*this, functor);
-			for (decltype(base_type::_config.startingThreads) i = 0; i < base_type::_config.startingThreads; ++i) {
+			for (decltype(_config.startingThreads) i = 0; i < _config.startingThreads; ++i) {
 				thread_type newThread;
 				newThread.handle = CreateThread(NULL, 0, &ThreadPoolWin32::FunctionWrapper<decltype(functor)>, _threadData, NULL, &newThread.id);
 				_threads.push_back(newThread);
@@ -134,7 +133,7 @@ namespace Threading {
 		template <typename _RetTy, class _ObjTy>
 		ThreadPoolWin32(_RetTy(_ObjTy::* functor)(_ArgsTy...), _ObjTy* obj, Config config = Config()) : ThreadPoolWin32(config) {
 			_threadData = new MemberThreadData<decltype(functor), _ObjTy>(*this, functor, obj);
-			for (decltype(base_type::_config.startingThreads) i = 0; i < base_type::_config.startingThreads; ++i) {
+			for (decltype(_config.startingThreads) i = 0; i < _config.startingThreads; ++i) {
 				thread_type newThread;
 				newThread.handle = CreateThread(NULL, 0, &ThreadPoolWin32::FunctionWrapper<decltype(functor), _ObjTy>, _threadData, NULL, &newThread.id);
 				_threads.push_back(newThread);
@@ -145,7 +144,7 @@ namespace Threading {
 		template <typename _RetTy, class _ObjTy>
 		ThreadPoolWin32(_RetTy(_ObjTy::* functor)(_ArgsTy...) const, _ObjTy const* obj, Config config = Config()) : ThreadPoolWin32(config) {
 			_threadData = new MemberThreadData<decltype(functor), _ObjTy const>(*this, functor, obj);
-			for (decltype(base_type::_config.startingThreads) i = 0; i < base_type::_config.startingThreads; ++i) {
+			for (decltype(_config.startingThreads) i = 0; i < _config.startingThreads; ++i) {
 				thread_type newThread;
 				newThread.handle = CreateThread(NULL, 0, &ThreadPoolWin32::FunctionWrapper<decltype(functor), _ObjTy const>, _threadData, NULL, &newThread.id);
 				_threads.push_back(newThread);
@@ -155,15 +154,25 @@ namespace Threading {
 
 		~ThreadPoolWin32() {
 			Resume();
-			Wait();
 			Stop();
+			Wait();
 			for (thread_type& t : _threads) {
 				WaitForSingleObject(t.handle, INFINITE);
 			}
 			delete _threadData;
 		}
 
-		using base_type::Push;
+		void Push(_ArgsTy...args) {
+			Push(std::forward_as_tuple(args...));
+		}
+
+		template <class _Iter>
+		void Push(_Iter begin, _Iter end) {
+			while (begin != end) {
+				Push(*begin);
+				++begin;
+			}
+		}
 
 		void Push(work_type const& work) {
 			lock_type lock(_workSection);
@@ -188,9 +197,21 @@ namespace Threading {
 		void Wait() {
 			// Wait until all threads are waiting
 			while (_waitingThreads < _threads.size() || !(_works.empty() || _pause)) {
-				sleep(0);
+				Sleep(0);
 			}
 			lock_type lock(_sleepSection);
+		}
+
+		void Stop() {
+			_run = false;
+		}
+
+		void Pause() {
+			_pause = true;
+		}
+
+		void Resume() {
+			_pause = false;
 		}
 
 		std::size_t Size() {
@@ -224,7 +245,7 @@ namespace Threading {
 					works.pop();
 					lock.Unlock();
 
-					_Execute(functor, work);
+					base_type::_Execute(functor, work);
 				}
 			}
 			
@@ -259,7 +280,7 @@ namespace Threading {
 					works.pop();
 					lock.Unlock();
 
-					_Execute(functor, obj, work);
+					base_type::_Execute(functor, obj, work);
 				}
 			}
 
