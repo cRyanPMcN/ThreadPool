@@ -3,6 +3,7 @@
 #include "CppUnitTest.h"
 #include "ThreadPoolCPP.hpp"
 #include <random>
+#include <functional>
 
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 
