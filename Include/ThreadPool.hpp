@@ -5,6 +5,7 @@
 #include "ThreadPoolWin32TpApi.hpp"
 #include <cstddef>
 #include <thread>
+#include <vector>
 
 namespace Threading {
 	//template <template<typename...> typename _poolTy>
@@ -16,7 +17,7 @@ namespace Threading {
 //		using threadpool_type = ThreadPoolWin32TpApi<_ArgsTy...>;
 //#else
 		using threadpool_type = ThreadPoolWin32<_ArgsTy...>;
-//#endif
+//	#endif
 #else
 		using threadpool_type = ThreadPoolCPP<_ArgsTy...>;
 #endif
@@ -31,7 +32,7 @@ namespace Threading {
 			}
 		};
 		using work_type = std::tuple<_ArgsTy...>;
-		using work_container = std::queue<work_type>;
+		using work_container = std::vector<work_type>;
 	private:
 		threadpool_type _threadpool;
 		std::thread _watcherThread;
@@ -43,7 +44,7 @@ namespace Threading {
 		bool (*_workOrderPredicate)(work_type const&, work_type const&);
 		ThreadPool() : _watcherControl(true), _shouldRunPredicate([](work_type const&) { return true; }), _workOrderPredicate([](work_type const&, work_type const&) { return false; }),
 			_watcherThread(&ThreadPool::WatcherThreadFunction, this) {
-			std::sort();
+
 		}
 	public:
 		template <typename _FuncTy>
@@ -66,10 +67,22 @@ namespace Threading {
 
 		}
 
+		void SetShouldRun(bool(*predicate)(work_type const&)) {
+			_shouldRunPredicate = predicate;
+		}
+
+		void SetWorkOrder(bool(*predicate)(work_type const&, work_type const&) {
+			_workOrderPredicate = predicate
+		}
+
 		void Push(work_type const& work) {
+			std::unique_lock<std::mutex> lock(_watcherMutex);
+			//for (work_container; ; )
 		}
 
 		void Push(work_type const&& work) {
+			std::unique_lock<std::mutex> lock(_watcherMutex);
+			_buffer.push(work);
 		}
 
 		void Push(_ArgsTy...args) {
@@ -78,8 +91,10 @@ namespace Threading {
 
 		template <class _Iter>
 		void Push(_Iter begin, _Iter end) {
-			std::unique_lock lock(_watcherMutex);
-
+			std::unique_lock<std::mutex> lock(_watcherMutex);
+			while (begin != end) {
+				_buffer.push(*begin)
+			}
 		}
 
 		void WakeOne() {
