@@ -116,6 +116,7 @@ namespace Threading {
 	template <class... _ArgsTy>
 	class ThreadPoolCPP {
 	public:
+		using Config = ThreadPoolBase::Config;
 		using thread_type = std::thread;
 
 		using thread_container = std::vector<thread_type>;
