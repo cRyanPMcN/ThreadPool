@@ -6,9 +6,58 @@
 #include <set>
 #include <queue>
 #include <tuple>
+#include <shared_mutex>
 
 namespace Threading {
 	namespace DetailWin {
+		struct RecursiveMutex {
+		private:
+			CRITICAL_SECTION _section;
+			unsigned long _countLocks;
+		public:
+			bool isGood;
+			RecursiveMutex() : _countLocks(0) {
+				isGood = !InitializeCriticalSectionAndSpinCount(&_section, 2000);
+			}
+
+			~RecursiveMutex() {
+				DeleteCriticalSection(&_section);
+			}
+
+			void Lock() {
+				EnterCriticalSection(&_section);
+				++_countLocks;
+			}
+
+			void Unlock() {
+				LeaveCriticalSection(&_section);
+				--_countLocks;
+			}
+
+			bool TryLock() {
+				// TryEnterCritcalSection returns a non-zero value if it succeeds.
+				// Therefore it cannot be assumed to be one.
+				bool result = (TryEnterCriticalSection(&_section) != 0);
+				// The compiler will probably do this
+				//_countLocks += result;
+				if (result) {
+					++_countLocks;
+				}
+				return result;
+			}
+
+			void lock() {
+				Lock();
+			}
+
+			void unlock() {
+				Unlock();
+			}
+
+			bool try_lock() {
+				return TryLock();
+			}
+		};
 		struct CriticalSection {
 			CRITICAL_SECTION _section;
 
@@ -45,13 +94,14 @@ namespace Threading {
 
 			void Lock() {
 				_section.Enter();
-				_InterlockedIncrement(&_spinCount);
+				++_spinCount;
 			}
 
 			void Unlock() {
 				_section.Leave();
+				// Check just in case
 				if (_spinCount > 0) {
-					_InterlockedDecrement(&_spinCount);
+					--_spinCount;
 				}
 			}
 		};
@@ -59,11 +109,10 @@ namespace Threading {
 
 
 	template <class... _ArgsTy>
-	class ThreadPoolWin32 : public ThreadPoolBase<_ArgsTy...> {
+	class ThreadPoolWin32 {
 	public:
-		using base_type = ThreadPoolBase<_ArgsTy...>;
-		using Config = typename Config;
-		using thread_type = struct _thrd {
+		using Config = ThreadPoolBase::Config;
+		struct thread_type {
 			HANDLE handle;
 			DWORD id;
 		};
@@ -90,8 +139,8 @@ namespace Threading {
 
 		using lock_type = DetailWin::SpinLock;
 
-		using work_type = typename base_type::work_type;
-		using work_container = typename base_type::work_container;
+		using work_type = std::tuple<_ArgsTy...>;
+		using work_container = std::queue<work_type>;
 	protected:
 		Config _config;
 		bool _run;
@@ -245,7 +294,7 @@ namespace Threading {
 					works.pop();
 					lock.Unlock();
 
-					base_type::_Execute(functor, work);
+					ThreadPoolBase::_Execute(functor, work);
 				}
 			}
 			
@@ -280,7 +329,7 @@ namespace Threading {
 					works.pop();
 					lock.Unlock();
 
-					base_type::_Execute(functor, obj, work);
+					ThreadPoolBase::_Execute(functor, obj, work);
 				}
 			}
 
