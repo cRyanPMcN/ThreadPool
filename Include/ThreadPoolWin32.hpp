@@ -38,8 +38,6 @@ namespace Threading {
 				// TryEnterCritcalSection returns a non-zero value if it succeeds.
 				// Therefore it cannot be assumed to be one.
 				bool result = (TryEnterCriticalSection(&_section) != 0);
-				// The compiler will probably do this
-				//_countLocks += result;
 				if (result) {
 					++_countLocks;
 				}
