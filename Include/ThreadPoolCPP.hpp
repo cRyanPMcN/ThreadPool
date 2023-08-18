@@ -26,7 +26,7 @@ namespace Threading {
 		thread_container _threads;
 		std::atomic_uint64_t _waitingThreads;
 	public:
-		ThreadPoolCPP(std::size_t numberThreads) : _waitingThreads(0) {
+		ThreadPoolCPP(std::size_t numberThreads) : _waitingThreads(0), _run(true), _pause(false) {
 			for (std::size_t i = 0; i < numberThreads; ++i) {
 				_threads.push_back(thread_type(&ThreadPoolCPP::FunctionWrapper, this));
 			}
@@ -46,8 +46,17 @@ namespace Threading {
 
 		template <class _FuncTy, class..._ArgsTy>
 		void Push(_FuncTy functor, _ArgsTy...args) {
-			Push(new work_type<_FuncTy, _ArgsTy...>(functor, args...));
+			lock_type lock(_workMutex);
+			_works.emplace([functor, args...](){ std::invoke(functor, args...); });
 			WakeOne();
+		}
+
+		void WakeOne() {
+			_conditionVariable.notify_one();
+		}
+
+		void WakeAll() {
+			_conditionVariable.notify_all();
 		}
 
 		void Stop() {
@@ -63,13 +72,6 @@ namespace Threading {
 			_pause = true;
 		}
 
-		void WakeOne() {
-			_conditionVariable.notify_one();
-		}
-
-		void WakeAll() {
-			_conditionVariable.notify_all();
-		}
 
 		void Wait() {
 			// Wait until all threads are waiting
@@ -90,7 +92,7 @@ namespace Threading {
 				{
 					lock_type lock(_sleepMutex);
 					++_waitingThreads;
-					_conditionVariable.wait(lock);
+					_conditionVariable.wait(lock, [this]() { return !_works.empty(); });
 					--_waitingThreads;
 				}
 
