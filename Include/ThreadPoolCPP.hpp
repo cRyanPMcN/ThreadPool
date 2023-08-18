@@ -35,8 +35,8 @@ namespace Threading {
 
 		~ThreadPoolCPP() {
 			Resume();
-			Wait();
 			Stop();
+			Wait();
 			for (thread_type& t : _threads) {
 				if (t.joinable()) {
 					t.join();
