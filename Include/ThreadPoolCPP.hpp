@@ -8,9 +8,8 @@
 #include <functional>
 
 namespace Threading {
-	class ThreadPoolCPP : public ThreadPoolBase {
+	class ThreadPoolCPP {
 	public:
-		using base_type = ThreadPoolBase;
 		using thread_type = std::thread;
 		using thread_container = std::vector<thread_type>;
 
