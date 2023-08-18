@@ -31,8 +31,6 @@ namespace Threading {
 		template <class _FuncTy, class..._ArgsTy>
 		void Push(_FuncTy functor, _ArgsTy... work) {
 			_threadpool.Push(functor, work...);
-			std::function<void> wrapper([functor, work...]() { ThreadPoolBase::_Execute(functor, work...); });
-			wrapper();
 		}
 
 		void Wait() {
