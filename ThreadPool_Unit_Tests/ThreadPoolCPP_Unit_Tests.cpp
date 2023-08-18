@@ -10,7 +10,7 @@ namespace ThreadPoolUnitTests {
 	TEST_CLASS(ThreadPoolCPPUnitTests) {
 	public:
 		TEST_METHOD(ThreadPoolCPP_Constructor) {
-			Threading::ThreadPoolCPP threadpool;
+			Threading::ThreadPoolCPP threadpool(8);
 			Logger::WriteMessage("ThreadPoolCPP->Constructor Passed.\n");
 		}
 
@@ -18,7 +18,7 @@ namespace ThreadPoolUnitTests {
 
 		TEST_METHOD(ThreadPoolCPP_Execution_Single) {
 			Logger::WriteMessage("ThreadPoolCPP->Execution_Single: Start\n");
-			Threading::ThreadPoolCPP threadpool;
+			Threading::ThreadPoolCPP threadpool(8);
 			long expectedValue = 0;
 			long testValue = 0;
 			long incrementValue = 5;
@@ -153,7 +153,7 @@ namespace ThreadPoolUnitTests {
 			const long REPETITION_NUMBER = uid(randomEngine);
 			// Sanity check
 			ASSERT_EXPECTED_VALUE(expectedValue, testValue);
-			Threading::ThreadPoolCPP threadpool;
+			Threading::ThreadPoolCPP threadpool(8);
 
 			{
 				for (long i = 0; i < REPETITION_NUMBER; ++i) {
