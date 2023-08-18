@@ -24,7 +24,7 @@ namespace Threading {
 	private:
 		threadpool_type _threadpool;
 	public:
-		ThreadPool(Config config = Config()) : _threadpool(config) {
+		ThreadPool(std::size_t numberThreads) : _threadpool(numberThreads) {
 
 		}
 
