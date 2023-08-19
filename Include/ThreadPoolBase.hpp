@@ -4,8 +4,13 @@
 #include <queue>
 
 namespace Threading {
-	struct ThreadPoolBase {
-	
+	class ThreadPoolBase {
+	public:
+		template <class _FuncTy, class..._ArgsTy>
+		static inline void Execute(_FuncTy functor, _ArgsTy...args) {
+			std::invoke(functor, args...);
+		}
+
 		template <class _FuncTy, class..._ArgsTy, size_t..._indexes>
 		static inline void _Execute(_FuncTy functor, std::tuple<_ArgsTy...>& work, std::index_sequence<_indexes...> indexSequence) {
 			std::invoke(std::move(functor), std::get<_indexes>(work)...);
