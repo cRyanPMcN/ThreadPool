@@ -1,64 +1,75 @@
 #pragma once
-#include "ThreadPoolBase.hpp"
 #include <Windows.h>
 
 namespace Threading {
-	class ThreadPoolWin32TpApi : public ThreadPoolBase {
+	class ThreadPoolWin32TpApi {
 	public:
-		using base_type = ThreadPoolBase;
-		base_type::Config;
 		struct WorkContext {
 			ThreadPoolWin32TpApi& threadpool;
-			work_base* work;
+			 std::function<void()> work;
 
-			WorkContext(ThreadPoolWin32TpApi& tp, work_base* w) : threadpool(tp), work(w) {
+			WorkContext(ThreadPoolWin32TpApi& tp, std::function<void()> w) : threadpool(tp), work(w) {
 
+			}
+		};
+		struct HelperWorkingCounter {
+			unsigned long long& counter;
+			HelperWorkingCounter(unsigned long long& c) : counter(c) {
+				InterlockedIncrement(&counter);
+			}
+
+			~HelperWorkingCounter() {
+				InterlockedDecrement(&counter);
 			}
 		};
 	protected:
 		PTP_POOL _threadpool;
-		PTP_CALLBACK_ENVIRON _callback;
-		PTP_CLEANUP_GROUP _cleanup;
 		unsigned long long _workingThreads;
 	public:
-		ThreadPoolWin32TpApi(Config config = Config()) : _threadpool(CreateThreadpool(nullptr)), _cleanup(CreateThreadpoolCleanupGroup()), _workingThreads(0), base_type(config) {
-			InitializeThreadpoolEnvironment(_callback);
-			SetThreadpoolThreadMinimum(_threadpool, _config.minimumThreads);
-			SetThreadpoolThreadMaximum(_threadpool, _config.maximumThreads);
-			SetThreadpoolCallbackPool(_callback, _threadpool);
-			SetThreadpoolCallbackCleanupGroup(_callback, _cleanup, NULL);
+		ThreadPoolWin32TpApi(std::size_t numberThreads) : _threadpool(CreateThreadpool(nullptr)), _workingThreads(0) {
+			SetThreadpoolThreadMinimum(_threadpool, 1);
+			SetThreadpoolThreadMaximum(_threadpool, numberThreads);
 		}
 
 		~ThreadPoolWin32TpApi() {
-			DestroyThreadpoolEnvironment(_callback);
+			CloseThreadpool(_threadpool);
 		}
 
-		void Push(work_base* work) {
-			PTP_WORK pwork = CreateThreadpoolWork(&ThreadPoolWin32TpApi::Function_Wrapper, new WorkContext(*this, work), _callback);
+		template <class _FuncTy, class..._ArgsTy>
+		void Push(_FuncTy functor, _ArgsTy...args) {
+			std::function<void()> work([functor, args...]() { Execute(functor, args...); });
+			PTP_WORK pwork = CreateThreadpoolWork(&ThreadPoolWin32TpApi::Function_Wrapper, new WorkContext(*this, work), NULL);
 			SubmitThreadpoolWork(pwork);
 			CloseThreadpoolWork(pwork);
 		}
 
-		virtual void WakeOne() override {
-			// This cannot be done
-		}
-
-		virtual void WakeAll() override {
-			// This cannot be done
-		}
-
-		virtual void Wait() override {
+		void Wait() {
 			while (_workingThreads > 0) {
-				_Thrd_yield();
-				//Sleep(0);
+				Sleep(0);
 			}
 		}
 
+		void Stop() {
+
+		}
+
+		void Pause() {
+			
+		}
+
+		void Resume() {
+
+		}
+	private:
 		static void NTAPI Function_Wrapper(PTP_CALLBACK_INSTANCE instance, PVOID data, PTP_WORK pwork) {
 			WorkContext* context = (WorkContext*)data;
-			_InterlockedIncrement(&context->threadpool._workingThreads);
-			context->work->Execute();
-			_InterlockedDecrement(&context->threadpool._workingThreads);
+			HelperWorkingCounter counter(context->threadpool._workingThreads);
+			context->work();
+		}
+
+		template <class _FuncTy, class..._ArgsTy>
+		static inline void Execute(_FuncTy functor, _ArgsTy...args) {
+			std::invoke(functor, args...);
 		}
 	};
 }
