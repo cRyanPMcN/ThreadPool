@@ -48,9 +48,5 @@ namespace Threading {
 		void Resume() {
 			_threadpool.Resume();
 		}
-
-		std::size_t Size(){
-			return _threadpool.Size();
-		}
 	};
 }
