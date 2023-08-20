@@ -1,11 +1,10 @@
 #pragma once
 
-#include "ThreadPoolBase.hpp"
 #include <vector>
 #include <thread>
-#include <tuple>
 #include <mutex>
 #include <functional>
+#include <queue>
 
 namespace Threading {
 	class ThreadPoolCPP {
@@ -15,7 +14,7 @@ namespace Threading {
 
 		using lock_type = std::unique_lock<std::mutex>;
 		using work_type = std::function<void()>;
-		using work_container = std::queue<std::function<void()>>;
+		using work_container = std::queue<work_type>;
 	protected:
 		bool _run;
 		bool _pause;
@@ -34,9 +33,8 @@ namespace Threading {
 		}
 
 		~ThreadPoolCPP() {
-			Resume();
 			Stop();
-			Wait();
+			Resume();
 			for (thread_type& t : _threads) {
 				if (t.joinable()) {
 					t.join();
@@ -46,8 +44,10 @@ namespace Threading {
 
 		template <class _FuncTy, class..._ArgsTy>
 		void Push(_FuncTy functor, _ArgsTy...args) {
+			//std::_Function_args<_FuncTy(_ArgsTy...)>;
 			lock_type lock(_workMutex);
-			_works.emplace([functor, args...](){ std::invoke(functor, args...); });
+			// Type-deduction around std::invoke is sensitive, wrapping the call in another function removes multiple compiler errors
+			_works.emplace([functor, args...]() { Execute(functor, args...); });
 			WakeOne();
 		}
 
@@ -72,27 +72,23 @@ namespace Threading {
 			_pause = true;
 		}
 
-
 		void Wait() {
 			// Wait until all threads are waiting
-			while ((_waitingThreads < _threads.size()) || !(_works.empty() && !_pause)) {
+			while ((_waitingThreads < _threads.size()) || !(_works.empty() || _pause)) {
 				std::this_thread::yield();
 			}
 			// This lock is required so that Wake cannot be called before all threads are asleep
 			lock_type lock(_sleepMutex);
 		}
 
-		std::size_t Size() {
-			return _threads.size();
-		}
-
+private:
 		void FunctionWrapper() {
 			while (_run) {
 				// Sleep thread
 				{
 					lock_type lock(_sleepMutex);
 					++_waitingThreads;
-					_conditionVariable.wait(lock, [this]() { return !_works.empty(); });
+					_conditionVariable.wait(lock);
 					--_waitingThreads;
 				}
 
@@ -103,13 +99,18 @@ namespace Threading {
 					if (_works.empty()) {
 						break;
 					}
-					work_type work(_works.front());
+					auto work(_works.front());
 					_works.pop();
 					lock.unlock();
 					
 					work();
 				}
 			}
+		}
+
+		template <class _FuncTy, class..._ArgsTy>
+		static inline void Execute(_FuncTy functor, _ArgsTy...args) {
+			std::invoke(functor, args...);
 		}
 	};
 }
