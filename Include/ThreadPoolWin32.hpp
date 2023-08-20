@@ -1,11 +1,11 @@
 #pragma once
 
-#include "ThreadPoolBase.hpp"
 #include <Windows.h>
 #include <vector>
 #include <set>
 #include <queue>
 #include <tuple>
+#include <functional>
 
 namespace Threading {
 	namespace DetailWin {
@@ -45,20 +45,18 @@ namespace Threading {
 
 			void Lock() {
 				_section.Enter();
-				_InterlockedIncrement(&_spinCount);
+				InterlockedIncrement(&_spinCount);
 			}
 
 			void Unlock() {
 				_section.Leave();
-				_InterlockedDecrement(&_spinCount);
+				InterlockedDecrement(&_spinCount);
 			}
 		};
 	}
 
-	class ThreadPoolWin32 : public ThreadPoolBase {
+	class ThreadPoolWin32 {
 	public:
-		using base_type = ThreadPoolBase;
-		using Config = typename base_type::Config;
 		using thread_type = struct _thrd {
 			HANDLE handle;
 			DWORD id;
@@ -66,17 +64,21 @@ namespace Threading {
 		using thread_container = std::vector<thread_type>;
 
 		using lock_type = DetailWin::SpinLock;
+		using work_type = std::function<void()>;
+		using work_container = std::queue<std::function<void()>>;
 	protected:
-		CONDITION_VARIABLE _conditionVariable CONDITION_VARIABLE_INIT;
+		bool _run;
+		bool _pause;
 		DetailWin::CriticalSection _workSection;
+		work_container _works;
 		DetailWin::CriticalSection _sleepSection;
+		CONDITION_VARIABLE _conditionVariable CONDITION_VARIABLE_INIT;
 		thread_container _threads;
 		unsigned long long _waitingThreads;
-		// Required, gets cast to the correct type inside thread function
 	public:
-		ThreadPoolWin32(Config config = Config()) : base_type(config) {
+		ThreadPoolWin32(std::size_t numberThreads) : _waitingThreads(0), _run(true), _pause(false) {
 			InitializeConditionVariable(&_conditionVariable);
-			for (decltype(base_type::_config.startingThreads) i = 0; i < base_type::_config.startingThreads; ++i) {
+			for (std::size_t i = 0; i < numberThreads; ++i) {
 				thread_type newThread;
 				newThread.handle = CreateThread(NULL, 0, &ThreadPoolWin32::FunctionWrapper, this, NULL, &newThread.id);
 				_threads.push_back(newThread);
@@ -85,31 +87,42 @@ namespace Threading {
 		}
 
 		~ThreadPoolWin32() {
-			Resume();
-			Wait();
 			Stop();
+			Resume();
 			for (thread_type& t : _threads) {
 				WaitForSingleObject(t.handle, INFINITE);
 			}
 		}
 
-		using base_type::Push;
-
-		virtual void Push(work_base* work) override {
+		template <class _FuncTy, class..._ArgsTy>
+		void Push(_FuncTy functor, _ArgsTy...args) {
 			lock_type lock(_workSection);
-			_works.push(work);
+			_works.emplace([functor, args...](){ Execute(functor, args...); });
 			WakeOne();
 		}
 
-		virtual void WakeOne() override {
+		void WakeOne() {
 			WakeConditionVariable(&_conditionVariable);
 		}
 
-		virtual void WakeAll() override {
+		void WakeAll() {
 			WakeAllConditionVariable(&_conditionVariable);
 		}
 
-		virtual void Wait() override {
+		void Stop() {
+			_run = false;
+		}
+
+		void Resume() {
+			_pause = false;
+			WakeAll();
+		}
+
+		void Pause() {
+			_pause = true;
+		}
+
+		void Wait() {
 			// Wait until all threads are waiting
 			while (_waitingThreads < _threads.size() || !(_works.empty() || _pause)) {
 				std::this_thread::yield();
@@ -117,26 +130,18 @@ namespace Threading {
 			lock_type lock(_sleepSection);
 		}
 
-		virtual void Resume() override {
-			base_type::Resume();
-			Wake(_works.size());
-		}
-
-		virtual std::size_t Size() override {
-			return _threads.size();
-		}
-
+	private:
 		static DWORD WINAPI FunctionWrapper(LPVOID threadData) {
 			ThreadPoolWin32* threadpool = (ThreadPoolWin32*)threadData;
-			base_type::container_type& works = threadpool->_works;
+			work_container& works = threadpool->_works;
 
 			while (threadpool->_run) {
 				// Sleep thread
 				{
 					lock_type lock(threadpool->_sleepSection);
-					_InterlockedIncrement(&threadpool->_waitingThreads);
+					InterlockedIncrement(&threadpool->_waitingThreads);
 					SleepConditionVariableCS(&threadpool->_conditionVariable, &lock._section._section, INFINITE);
-					_InterlockedDecrement(&threadpool->_waitingThreads);
+					InterlockedIncrement(&threadpool->_waitingThreads);
 				}
 
 				// Loop work execution
@@ -146,15 +151,20 @@ namespace Threading {
 					if (works.empty()) {
 						break;
 					}
-					work_base* work = works.front();
+					work_type work(works.front());
 					works.pop();
 					lock.Unlock();
 
-					work->Execute();
+					work();
 				}
 			}
 			
 			return EXIT_SUCCESS;
+		}
+
+		template <class _FuncTy, class..._ArgsTy>
+		static inline void Execute(_FuncTy functor, _ArgsTy...args) {
+			std::invoke(functor, args...);
 		}
 	};
 }

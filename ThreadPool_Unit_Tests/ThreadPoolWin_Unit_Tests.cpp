@@ -10,7 +10,7 @@ namespace ThreadPoolUnitTests {
 	TEST_CLASS(ThreadPoolWin32UnitTests) {
 public:
 	TEST_METHOD(ThreadPoolWin32_Constructor) {
-		Threading::ThreadPoolWin32 threadpool;
+		Threading::ThreadPoolWin32 threadpool(8);
 		Logger::WriteMessage("ThreadPoolWin32->Constructor Passed.\n");
 	}
 
@@ -18,7 +18,7 @@ public:
 
 	TEST_METHOD(ThreadPoolWin32_Execution_Single) {
 		Logger::WriteMessage("ThreadPoolWin32->Execution_Single: Start\n");
-		Threading::ThreadPoolWin32 threadpool;
+		Threading::ThreadPoolWin32 threadpool(8);
 		long expectedValue = 0;
 		long testValue = 0;
 		long incrementValue = 5;
@@ -153,7 +153,7 @@ public:
 		const long REPETITION_NUMBER = uid(randomEngine);
 		// Sanity check
 		ASSERT_EXPECTED_VALUE(expectedValue, testValue);
-		Threading::ThreadPoolWin32 threadpool;
+		Threading::ThreadPoolWin32 threadpool(8);
 
 		{
 			for (long i = 0; i < REPETITION_NUMBER; ++i) {
@@ -169,7 +169,7 @@ public:
 		{
 			for (long i = 0; i < REPETITION_NUMBER; ++i) {
 				threadpool.Push((void(*)(long&))ExecutionTest::OverloadFunction, std::ref(testValue));
-				threadpool.Push<void(*)(long&, long), long&, long>(ExecutionTest::OverloadFunction, std::ref(testValue), incrementValue);
+				threadpool.Push((void(*)(long&, long))ExecutionTest::OverloadFunction, std::ref(testValue), incrementValue);
 				ExecutionTest::OverloadFunction(expectedValue);
 				ExecutionTest::OverloadFunction(expectedValue, incrementValue);
 			}
@@ -235,7 +235,7 @@ public:
 
 		{
 			for (long i = 0; i < REPETITION_NUMBER; ++i) {
-				threadpool.Push((void(*)(long&))ExecutionTest::Object::OverLoadStatic, testValue);
+				threadpool.Push((void(*)(long&))ExecutionTest::Object::OverLoadStatic, std::ref(testValue));
 				ExecutionTest::Object::OverLoadStatic(expectedValue);
 			}
 			threadpool.Wait();
@@ -246,7 +246,7 @@ public:
 
 		{
 			for (long i = 0; i < REPETITION_NUMBER; ++i) {
-				threadpool.Push((void(*)(long&, long))ExecutionTest::Object::OverLoadStatic, testValue, incrementValue);
+				threadpool.Push((void(*)(long&, long))ExecutionTest::Object::OverLoadStatic, std::ref(testValue), incrementValue);
 				ExecutionTest::Object::OverLoadStatic(expectedValue, incrementValue);
 			}
 			threadpool.Wait();
@@ -262,7 +262,7 @@ public:
 			Logger::WriteMessage("ThreadPoolWin32->Execution_Multiple: Callable Object Stage-One Passed\n");
 
 			for (long i = 0; i < REPETITION_NUMBER; ++i) {
-				threadpool.Push(testCallable, testValue);
+				threadpool.Push(std::ref(testCallable), testValue);
 				expectedCallable(expectedValue);
 				threadpool.Wait();
 			}
@@ -272,7 +272,7 @@ public:
 			Logger::WriteMessage("ThreadPoolWin32->Execution_Multiple: Callable Object Stage-Two Passed\n");
 
 			for (long i = 0; i < REPETITION_NUMBER; ++i) {
-				threadpool.Push(testCallable);
+				threadpool.Push(std::ref(testCallable));
 				expectedCallable();
 			}
 			threadpool.Wait();
@@ -282,7 +282,7 @@ public:
 			Logger::WriteMessage("ThreadPoolWin32->Execution_Multiple: Callable Object Stage-Three Passed\n");
 
 			for (long i = 0; i < REPETITION_NUMBER; ++i) {
-				threadpool.Push(testCallable, std::ref(testValue));
+				threadpool.Push(std::ref(testCallable), &testValue);
 				expectedCallable(&expectedValue);
 			}
 			threadpool.Wait();
