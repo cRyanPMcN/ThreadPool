@@ -8,11 +8,11 @@ namespace Threading {
 	template <typename..._ArgsTy>
 	class ThreadPool {
 #if defined(WIN32)
-//#if (_WIN32_WINNT > 0x0600)
-//		using threadpool_type = ThreadPoolWin32TpApi<_ArgsTy...>;
-//#else
+#if (_WIN32_WINNT > 0x0600)
+		using threadpool_type = ThreadPoolWin32TpApi<_ArgsTy...>;
+#else
 		using threadpool_type = ThreadPoolWin32;
-//#endif
+#endif
 #else
 		using threadpool_type = ThreadPoolCPP;
 #endif
