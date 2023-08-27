@@ -9,7 +9,7 @@ namespace Threading {
 	class ThreadPool {
 #if defined(WIN32)
 #if (_WIN32_WINNT > 0x0600)
-		using threadpool_type = ThreadPoolWin32TpApi<_ArgsTy...>;
+		using threadpool_type = ThreadPoolWin32TpApi;
 #else
 		using threadpool_type = ThreadPoolWin32;
 #endif
