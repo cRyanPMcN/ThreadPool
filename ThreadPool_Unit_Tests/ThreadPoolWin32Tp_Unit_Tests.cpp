@@ -1,23 +1,26 @@
 #include "UnitTestImplementations.hpp"
 #include "CppUnitTest.h"
-#include "ThreadPoolWin32.hpp"
+#include "ThreadPoolWin32TpApi.hpp"
 #include <random>
 
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 
 namespace ThreadPoolUnitTests {
-	TEST_CLASS(ThreadPoolWin32UnitTests) {
+	TEST_CLASS(ThreadPoolWin32TpApiUnitTests) {
 public:
-	TEST_METHOD(ThreadPoolWin32_Constructor) {
-		Threading::ThreadPoolWin32 threadpool(8);
-		Logger::WriteMessage("ThreadPoolWin32->Constructor Passed.\n");
+	TEST_METHOD(ThreadPoolWin32TpApi_Constructor) {
+		{
+			Threading::ThreadPoolWin32TpApi threadpool(8);
+			Logger::WriteMessage("ThreadPoolWin32TpApi->Constructor Passed.\n");
+		}
+		Logger::WriteMessage("ThreadPoolWin32TpApi->Destructor Passed.\n");
 	}
 
 #define ASSERT_EXPECTED_VALUE(expected, test) Assert::AreEqual(expected, test)
 
-	TEST_METHOD(ThreadPoolWin32_Execution_Single) {
-		Logger::WriteMessage("ThreadPoolWin32->Execution_Single: Start\n");
-		Threading::ThreadPoolWin32 threadpool(8);
+	TEST_METHOD(ThreadPoolWin32TpApi_Execution_Single) {
+		Logger::WriteMessage("ThreadPoolWin32TpApi->Execution_Single: Start\n");
+		Threading::ThreadPoolWin32TpApi threadpool(8);
 		long expectedValue = 0;
 		long testValue = 0;
 		long incrementValue = 5;
@@ -30,7 +33,7 @@ public:
 			threadpool.Wait();
 			ASSERT_EXPECTED_VALUE(expectedValue, testValue);
 		}
-		Logger::WriteMessage("ThreadPoolWin32->Execution_Single: Static Function Passed.\n");
+		Logger::WriteMessage("ThreadPoolWin32TpApi->Execution_Single: Static Function Passed.\n");
 
 		{
 			threadpool.Push((void(*)(long&))ExecutionTest::OverloadFunction, std::ref(testValue));
@@ -41,7 +44,7 @@ public:
 			ASSERT_EXPECTED_VALUE(expectedValue, testValue);
 		}
 
-		Logger::WriteMessage("ThreadPoolWin32->Execution_Single: Static Overload Function Passed.\n");
+		Logger::WriteMessage("ThreadPoolWin32TpApi->Execution_Single: Static Overload Function Passed.\n");
 
 		{
 			threadpool.Push(ExecutionTest::Object::Static, std::ref(testValue));
@@ -50,7 +53,7 @@ public:
 			ASSERT_EXPECTED_VALUE(expectedValue, testValue);
 		}
 
-		Logger::WriteMessage("ThreadPoolWin32->Execution_Single: Class Static Member Function Passed.\n");
+		Logger::WriteMessage("ThreadPoolWin32TpApi->Execution_Single: Class Static Member Function Passed.\n");
 
 		{
 			ExecutionTest::Object testObject;
@@ -66,7 +69,7 @@ public:
 				ASSERT_EXPECTED_VALUE(expectedValue, testValue);
 			}
 
-			Logger::WriteMessage("ThreadPoolWin32->Execution_Single: Member Function One-Arg Passed.\n");
+			Logger::WriteMessage("ThreadPoolWin32TpApi->Execution_Single: Member Function One-Arg Passed.\n");
 
 			{
 				threadpool.Push((void(ExecutionTest::Object::*)()) & ExecutionTest::Object::Member, &testObject);
@@ -76,7 +79,7 @@ public:
 				ASSERT_EXPECTED_VALUE(expectedValue, testValue);
 			}
 
-			Logger::WriteMessage("ThreadPoolWin32->Execution_Single: Member Function Zero-Arg Passed.\n");
+			Logger::WriteMessage("ThreadPoolWin32TpApi->Execution_Single: Member Function Zero-Arg Passed.\n");
 
 			{
 				threadpool.Push(&ExecutionTest::Object::ConstMember, testObject, std::ref(testValue));
@@ -86,7 +89,7 @@ public:
 				ASSERT_EXPECTED_VALUE(expectedValue, testValue);
 			}
 
-			Logger::WriteMessage("ThreadPoolWin32->Execution_Single: Const-Member Function Passed.\n");
+			Logger::WriteMessage("ThreadPoolWin32TpApi->Execution_Single: Const-Member Function Passed.\n");
 		}
 
 
@@ -97,7 +100,7 @@ public:
 			ASSERT_EXPECTED_VALUE(expectedValue, testValue);
 		}
 
-		Logger::WriteMessage("ThreadPoolWin32->Execution_Single: Class Static OverLoad Function Stage-One Passed.\n");
+		Logger::WriteMessage("ThreadPoolWin32TpApi->Execution_Single: Class Static OverLoad Function Stage-One Passed.\n");
 
 		{
 			threadpool.Push((void(*)(long&, long))ExecutionTest::Object::OverLoadStatic, std::ref(testValue), incrementValue);
@@ -106,43 +109,43 @@ public:
 			ASSERT_EXPECTED_VALUE(expectedValue, testValue);
 		}
 
-		Logger::WriteMessage("ThreadPoolWin32->Execution_Single: Class Static OverLoad Function Stage-Two Passed\n");
+		Logger::WriteMessage("ThreadPoolWin32TpApi->Execution_Single: Class Static OverLoad Function Stage-Two Passed\n");
 
 		{
 			ExecutionTest::Callable expectedCallable;
 			ExecutionTest::Callable testCallable;
 			ASSERT_EXPECTED_VALUE(expectedCallable.store, testCallable.store);
-			Logger::WriteMessage("ThreadPoolWin32->Execution_Single: Callable Object Stage-One Passed.\n");
+			Logger::WriteMessage("ThreadPoolWin32TpApi->Execution_Single: Callable Object Stage-One Passed.\n");
 
 			threadpool.Push(std::ref(testCallable), testValue);
 			threadpool.Wait();
 			expectedCallable(expectedValue);
 			ASSERT_EXPECTED_VALUE(expectedCallable.store, testCallable.store);
 			ASSERT_EXPECTED_VALUE(expectedValue, testValue);
-			Logger::WriteMessage("ThreadPoolWin32->Execution_Single: Callable Object Stage-Two Passed.\n");
+			Logger::WriteMessage("ThreadPoolWin32TpApi->Execution_Single: Callable Object Stage-Two Passed.\n");
 
 			threadpool.Push(std::ref(testCallable));
 			threadpool.Wait();
 			expectedCallable();
 			ASSERT_EXPECTED_VALUE(expectedCallable.store, testCallable.store);
 			ASSERT_EXPECTED_VALUE(expectedValue, testValue);
-			Logger::WriteMessage("ThreadPoolWin32->Execution_Single: Callable Object Stage-Three Passed.\n");
+			Logger::WriteMessage("ThreadPoolWin32TpApi->Execution_Single: Callable Object Stage-Three Passed.\n");
 
 			threadpool.Push(std::ref(testCallable), &testValue);
 			threadpool.Wait();
 			expectedCallable(&expectedValue);
 			ASSERT_EXPECTED_VALUE(expectedCallable.store, testCallable.store);
 			ASSERT_EXPECTED_VALUE(expectedValue, testValue);
-			Logger::WriteMessage("ThreadPoolWin32->Execution_Single: Callable Object Stage-Four Passed.\n");
+			Logger::WriteMessage("ThreadPoolWin32TpApi->Execution_Single: Callable Object Stage-Four Passed.\n");
 		}
 
-		Logger::WriteMessage("ThreadPoolWin32->Execution_Single: Callable Object Passed.\n");
+		Logger::WriteMessage("ThreadPoolWin32TpApi->Execution_Single: Callable Object Passed.\n");
 
-		Logger::WriteMessage("ThreadPoolWin32->Execution_Single: End\n");
+		Logger::WriteMessage("ThreadPoolWin32TpApi->Execution_Single: End\n");
 	}
 
-	TEST_METHOD(ThreadPoolWin32_Execution_Multiple) {
-		Logger::WriteMessage("ThreadPoolWin32->Execution_Multiple: Start\n");
+	TEST_METHOD(ThreadPoolWin32TpApi_Execution_Multiple) {
+		Logger::WriteMessage("ThreadPoolWin32TpApi->Execution_Multiple: Start\n");
 		long expectedValue = 0;
 		long testValue = 0;
 		std::uniform_int_distribution<long> uid(25, 250);
@@ -152,7 +155,7 @@ public:
 		const long REPETITION_NUMBER = uid(randomEngine);
 		// Sanity check
 		ASSERT_EXPECTED_VALUE(expectedValue, testValue);
-		Threading::ThreadPoolWin32 threadpool(8);
+		Threading::ThreadPoolWin32TpApi threadpool(8);
 
 		{
 			for (long i = 0; i < REPETITION_NUMBER; ++i) {
@@ -163,7 +166,7 @@ public:
 			ASSERT_EXPECTED_VALUE(expectedValue, testValue);
 		}
 
-		Logger::WriteMessage("ThreadPoolWin32->Execution_Multiple: Static Function Passed\n");
+		Logger::WriteMessage("ThreadPoolWin32TpApi->Execution_Multiple: Static Function Passed\n");
 
 		{
 			for (long i = 0; i < REPETITION_NUMBER; ++i) {
@@ -176,7 +179,7 @@ public:
 			ASSERT_EXPECTED_VALUE(expectedValue, testValue);
 		}
 
-		Logger::WriteMessage("ThreadPoolWin32->Execution_Multiple: Static Overload Function Passed\n");
+		Logger::WriteMessage("ThreadPoolWin32TpApi->Execution_Multiple: Static Overload Function Passed\n");
 
 		{
 			for (long i = 0; i < REPETITION_NUMBER; ++i) {
@@ -187,7 +190,7 @@ public:
 			ASSERT_EXPECTED_VALUE(expectedValue, testValue);
 		}
 
-		Logger::WriteMessage("ThreadPoolWin32->Execution_Multiple: Static Member Function Passed\n");
+		Logger::WriteMessage("ThreadPoolWin32TpApi->Execution_Multiple: Static Member Function Passed\n");
 
 		{
 			ExecutionTest::Object testObject;
@@ -205,7 +208,7 @@ public:
 				ASSERT_EXPECTED_VALUE(expectedValue, testValue);
 			}
 
-			Logger::WriteMessage("ThreadPoolWin32->Execution_Multiple: Member Function One-Arg Passed\n");
+			Logger::WriteMessage("ThreadPoolWin32TpApi->Execution_Multiple: Member Function One-Arg Passed\n");
 
 			{
 				for (long i = 0; i < REPETITION_NUMBER; ++i) {
@@ -217,7 +220,7 @@ public:
 				ASSERT_EXPECTED_VALUE(expectedValue, testValue);
 			}
 
-			Logger::WriteMessage("ThreadPoolWin32->Execution_Multiple: Member Function Zero-Arg Passed\n");
+			Logger::WriteMessage("ThreadPoolWin32TpApi->Execution_Multiple: Member Function Zero-Arg Passed\n");
 
 			{
 				for (long i = 0; i < REPETITION_NUMBER; ++i) {
@@ -229,7 +232,7 @@ public:
 				ASSERT_EXPECTED_VALUE(expectedValue, testValue);
 			}
 
-			Logger::WriteMessage("ThreadPoolWin32->Execution_Multiple: Const Member Function Passed\n");
+			Logger::WriteMessage("ThreadPoolWin32TpApi->Execution_Multiple: Const Member Function Passed\n");
 		}
 
 		{
@@ -241,7 +244,7 @@ public:
 			ASSERT_EXPECTED_VALUE(expectedValue, testValue);
 		}
 
-		Logger::WriteMessage("ThreadPoolWin32->Execution_Multiple: OverLoad Static Function Stage-One Passed\n");
+		Logger::WriteMessage("ThreadPoolWin32TpApi->Execution_Multiple: OverLoad Static Function Stage-One Passed\n");
 
 		{
 			for (long i = 0; i < REPETITION_NUMBER; ++i) {
@@ -252,13 +255,13 @@ public:
 			ASSERT_EXPECTED_VALUE(expectedValue, testValue);
 		}
 
-		Logger::WriteMessage("ThreadPoolWin32->Execution_Multiple: OverLoad Static Function Stage-Two Passed\n");
+		Logger::WriteMessage("ThreadPoolWin32TpApi->Execution_Multiple: OverLoad Static Function Stage-Two Passed\n");
 
 		{
 			ExecutionTest::Callable expectedCallable;
 			ExecutionTest::Callable testCallable;
 			ASSERT_EXPECTED_VALUE(expectedCallable.store, testCallable.store);
-			Logger::WriteMessage("ThreadPoolWin32->Execution_Multiple: Callable Object Stage-One Passed\n");
+			Logger::WriteMessage("ThreadPoolWin32TpApi->Execution_Multiple: Callable Object Stage-One Passed\n");
 
 			for (long i = 0; i < REPETITION_NUMBER; ++i) {
 				threadpool.Push(std::ref(testCallable), testValue);
@@ -268,7 +271,7 @@ public:
 			ASSERT_EXPECTED_VALUE(expectedCallable.store, testCallable.store);
 			ASSERT_EXPECTED_VALUE(expectedValue, testValue);
 
-			Logger::WriteMessage("ThreadPoolWin32->Execution_Multiple: Callable Object Stage-Two Passed\n");
+			Logger::WriteMessage("ThreadPoolWin32TpApi->Execution_Multiple: Callable Object Stage-Two Passed\n");
 
 			for (long i = 0; i < REPETITION_NUMBER; ++i) {
 				threadpool.Push(std::ref(testCallable));
@@ -278,7 +281,7 @@ public:
 			ASSERT_EXPECTED_VALUE(expectedCallable.store, testCallable.store);
 			ASSERT_EXPECTED_VALUE(expectedValue, testValue);
 
-			Logger::WriteMessage("ThreadPoolWin32->Execution_Multiple: Callable Object Stage-Three Passed\n");
+			Logger::WriteMessage("ThreadPoolWin32TpApi->Execution_Multiple: Callable Object Stage-Three Passed\n");
 
 			for (long i = 0; i < REPETITION_NUMBER; ++i) {
 				threadpool.Push(std::ref(testCallable), &testValue);
@@ -288,12 +291,12 @@ public:
 			ASSERT_EXPECTED_VALUE(expectedCallable.store, testCallable.store);
 			ASSERT_EXPECTED_VALUE(expectedValue, testValue);
 
-			Logger::WriteMessage("ThreadPoolWin32->Execution_Multiple: Callable Object Stage-Four Passed\n");
+			Logger::WriteMessage("ThreadPoolWin32TpApi->Execution_Multiple: Callable Object Stage-Four Passed\n");
 		}
 
-		Logger::WriteMessage("ThreadPoolWin32->Execution_Multiple: Callable Object Passed\n");
+		Logger::WriteMessage("ThreadPoolWin32TpApi->Execution_Multiple: Callable Object Passed\n");
 
-		Logger::WriteMessage("ThreadPoolWin32->Execution_Multiple: End\n");
+		Logger::WriteMessage("ThreadPoolWin32TpApi->Execution_Multiple: End\n");
 	}
 #undef ASSERT_EXPECTED_VALUE
 #undef ASSERT_EXPECTED_STORE

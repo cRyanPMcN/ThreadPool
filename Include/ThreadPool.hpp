@@ -1,6 +1,5 @@
 #pragma once
 #include <cstddef>
-#include "ThreadPoolBase.hpp"
 #include "ThreadPoolCPP.hpp"
 #include "ThreadPoolWin32.hpp"
 #include "ThreadPoolWin32TpApi.hpp"

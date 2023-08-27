@@ -1,4 +1,3 @@
-#include "pch.h"
 #include "UnitTestImplementations.hpp"
 
 #pragma region ConstructorTests
