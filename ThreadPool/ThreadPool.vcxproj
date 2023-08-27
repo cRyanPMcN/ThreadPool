@@ -152,7 +152,6 @@
   <ItemGroup>
     <ClInclude Include="..\Include\ThreadPool.hpp" />
     <ClInclude Include="..\Include\ThreadPoolCPP.hpp" />
-    <ClInclude Include="..\Include\ThreadPoolBase.hpp" />
     <ClInclude Include="..\Include\ThreadPoolWin32.hpp" />
     <ClInclude Include="..\Include\ThreadPoolWin32TpApi.hpp" />
   </ItemGroup>

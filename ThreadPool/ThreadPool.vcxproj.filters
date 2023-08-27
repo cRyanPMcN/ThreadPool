@@ -20,19 +20,16 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\Include\ThreadPool.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Include\ThreadPoolCPP.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\Include\ThreadPoolWin32TpApi.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\Include\ThreadPoolWin32.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\Include\ThreadPoolBase.hpp">
+    <ClInclude Include="..\Include\ThreadPool.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\ThreadPoolCPP.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -1,54 +1,47 @@
 #pragma once
 #include <cstddef>
-#include "ThreadPoolBase.hpp"
 #include "ThreadPoolCPP.hpp"
 #include "ThreadPoolWin32.hpp"
 #include "ThreadPoolWin32TpApi.hpp"
 
 namespace Threading {
 	template <typename..._ArgsTy>
-	class ThreadPool : 
-		public
+	class ThreadPool {
 #if defined(WIN32)
 #if (_WIN32_WINNT > 0x0600)
-		ThreadPoolWin32TpApi<_ArgsTy...> {
-	public:
-		using base_type = ThreadPoolWin32TpApi<_ArgsTy...>;
+		using threadpool_type = ThreadPoolWin32TpApi;
 #else
-		ThreadPoolWin32<_ArgsTy...> {
-	public:
-		using base_type = ThreadPoolWin32<_ArgsTy...>;
+		using threadpool_type = ThreadPoolWin32;
 #endif
 #else
-		ThreadPoolCPP<_ArgsTy...> {
-	public:
-		using base_type = ThreadPoolCPP<_ArgsTy...>;
+		using threadpool_type = ThreadPoolCPP;
 #endif
-
-		using Config = typename base_type::Config;
-		using work_type = typename base_type::work_type;
-		using work_container = typename base_type::work_container;
+	private:
+		threadpool_type _threadpool;
 	public:
-		template <typename _FuncTy>
-		ThreadPool(_FuncTy functor, Config config = Config()) : base_type(functor, config) {
+		ThreadPool(std::size_t numberThreads) : _threadpool(numberThreads) {
 
 		}
 
-		template <typename _RetTy>
-		ThreadPool(_RetTy(*functor)(_ArgsTy...), Config config = Config()) : base_type(functor, config) {
-
+		template <class _FuncTy, class..._ArgsTy>
+		void Push(_FuncTy functor, _ArgsTy... work) {
+			_threadpool.Push(functor, work...);
 		}
 
-		template <typename _RetTy, class _ObjTy>
-		ThreadPool(_RetTy(_ObjTy::*functor)(_ArgsTy...), _ObjTy* obj, Config config = Config()) : base_type(functor, obj, config) {
-
+		void Wait() {
+			_threadpool.Wait();
 		}
 
-		template <typename _RetTy, class _ObjTy>
-		ThreadPool(_RetTy(_ObjTy::*functor)(_ArgsTy...) const, _ObjTy const* obj, Config config = Config()) : base_type(functor, obj, config) {
-
+		void Stop() {
+			_threadpool.Stop();
 		}
 
-		using base_type::Pause;
+		void Pause() {
+			_threadpool.Pause();
+		}
+
+		void Resume() {
+			_threadpool.Resume();
+		}
 	};
 }
