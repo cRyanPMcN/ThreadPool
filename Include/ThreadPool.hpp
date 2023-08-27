@@ -16,10 +16,6 @@ namespace Threading {
 #else
 		using threadpool_type = ThreadPoolCPP;
 #endif
-
-		using Config = typename threadpool_type::Config;
-		using work_type = typename threadpool_type::work_type;
-		using work_container = typename threadpool_type::work_container;
 	private:
 		threadpool_type _threadpool;
 	public:
